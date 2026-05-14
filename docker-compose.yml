@@ -1,0 +1,68 @@
+version: "3.8"
+
+services:
+  # Real-Time Chat Application
+  chat-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: real-time-chat-app:latest
+    container_name: real-time-chat-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000" # HTTP server port
+      - "4000:4000" # WebSocket server port
+      - "5000:5000" # Presence WebSocket server port
+    env_file:
+      - .env
+    environment:
+      - SERVER_ID=chat-app-1
+    volumes:
+      - ./logs:/app/logs # Mount logs directory
+      - ./secure-connect-my-cassandra-db.zip:/app/secure-connect-my-cassandra-db.zip:ro # Mount Cassandra bundle
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Real-Time Chat Application - Instance 2
+  chat-app-2:
+    image: real-time-chat-app:latest
+    container_name: real-time-chat-app-2
+    restart: unless-stopped
+    ports:
+      - "3001:3000" # HTTP server port
+      - "4001:4000" # WebSocket server port
+      - "5001:5000" # Presence WebSocket server port
+    env_file:
+      - .env
+    environment:
+      - SERVER_ID=chat-app-2
+    volumes:
+      - ./logs:/app/logs # Mount logs directory
+      - ./secure-connect-my-cassandra-db.zip:/app/secure-connect-my-cassandra-db.zip:ro # Mount Cassandra bundle
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

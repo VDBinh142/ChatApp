@@ -1,0 +1,27 @@
+config:
+  target: 'ws://localhost/ws/chat'
+  processor: './artillery-processor.ts'
+  phases:
+    - duration: 1
+      arrivalRate: 2
+scenarios:
+  - name: 'One To One Chat'
+    engine: ws
+    weight: 100
+    flow:
+      - connect: 
+          function: 'connectHandler'
+      - function: 'postConnectionHandler'
+      - loop:
+        - function: 'preMessageSend'
+        - send:
+            type: 'ONE_TO_ONE_CHAT'
+            from: '{{ username }}'
+            to: '{{ targetFriend }}'
+            content: 'Hello, this is a test message!'
+            chatId: '{{ chatId }}'
+        - function: 'postMessageSend'
+        count: 10
+      - think: 1
+      - send:
+          type: 'DISCONNECT'
