@@ -92,5 +92,6 @@ Thumbs.db
 # yarn.lock
 secure-connect-my-cassandra-db.zip
 /generated/prisma
+src/generated/
 .env.local
 .env.production

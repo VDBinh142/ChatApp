@@ -154,7 +154,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/home/ryuzaki/Desktop/Projects/Real Time Chat App/src/generated/prisma",
+      "value": "/home/kusonedo/Downloads/Real-Time-Chat-App/src/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -168,12 +168,11 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/home/ryuzaki/Desktop/Projects/Real Time Chat App/src/prisma/schema.prisma",
+    "sourceFilePath": "/home/kusonedo/Downloads/Real-Time-Chat-App/src/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
-    "schemaEnvPath": "../../../.env"
+    "rootEnvPath": null
   },
   "relativePath": "../../prisma",
   "clientVersion": "6.12.0",
