@@ -2,22 +2,14 @@ import { WebSocket } from "ws";
 import {
   CreateGroupChatMessage,
   DisconnectMessage,
-  FileMessage,
   GetGroupChatHistoryMessage,
   GetOneToOneChatHistoryMessage,
   GroupChatMessage,
-  GroupFileMessage,
   IncomingMessage,
   JoinGroupChatMessage,
   NewOneToOneChatMessage,
   OfflineMessagesAckMessage,
   OneToOneChatMessage,
-  RespondFriendRequestMessage,
-  SearchGroupChatHistoryMessage,
-  SearchOneToOneChatHistoryMessage,
-  SendFriendRequestMessage,
-  FetchFriendsMetaMessage,
-  FetchFriendRequestsMessage,
 } from "./messageTypes";
 
 // Generic message handler type
@@ -37,16 +29,6 @@ export type JoinGroupChatHandler = MessageHandler<JoinGroupChatMessage>;
 export type GroupChatHandler = MessageHandler<GroupChatMessage>;
 export type GetGroupChatHistoryHandler =
   MessageHandler<GetGroupChatHistoryMessage>;
-export type FileMessageHandler = MessageHandler<FileMessage>;
-export type GroupFileMessageHandler = MessageHandler<GroupFileMessage>;
-export type SendFriendRequestHandler = MessageHandler<SendFriendRequestMessage>;
-export type RespondFriendRequestHandler = MessageHandler<RespondFriendRequestMessage>;
-export type FetchFriendRequestsHandler = MessageHandler<FetchFriendRequestsMessage>;
-export type FetchFriendsMetaHandler = MessageHandler<FetchFriendsMetaMessage>;
-export type SearchOneToOneChatHistoryHandler =
-  MessageHandler<SearchOneToOneChatHistoryMessage>;
-export type SearchGroupChatHistoryHandler =
-  MessageHandler<SearchGroupChatHistoryMessage>;
 export type OfflineMessagesAckHandler =
   MessageHandler<OfflineMessagesAckMessage>;
 export type DisconnectHandler = MessageHandler<DisconnectMessage>;
@@ -61,14 +43,6 @@ export interface MessageHandlerMap {
   JOIN_GROUP_CHAT: JoinGroupChatHandler;
   GET_GROUP_CHAT_HISTORY: GetGroupChatHistoryHandler;
   GROUP_CHAT: GroupChatHandler;
-  FILE_MESSAGE: FileMessageHandler;
-  GROUP_FILE_MESSAGE: GroupFileMessageHandler;
-  SEND_FRIEND_REQUEST: SendFriendRequestHandler;
-  RESPOND_FRIEND_REQUEST: RespondFriendRequestHandler;
-  FETCH_FRIEND_REQUESTS: FetchFriendRequestsHandler;
-  FETCH_FRIENDS_META: FetchFriendsMetaHandler;
-  SEARCH_ONE_TO_ONE_HISTORY: SearchOneToOneChatHistoryHandler;
-  SEARCH_GROUP_CHAT_HISTORY: SearchGroupChatHistoryHandler;
   OFFLINE_MESSAGES_ACK: OfflineMessagesAckHandler;
   DISCONNECT: DisconnectHandler;
 }

@@ -44,13 +44,8 @@ export interface NewOneToOneChatApprovalResponse extends BaseResponse {
 export interface MessageResponse extends BaseResponse {
   type: "MESSAGE";
   from: string;
-  content?: string;
+  content: string;
   chatId: string;
-  fileUrl?: string;
-  fileName?: string;
-  mimeType?: string;
-  fileSize?: number;
-  caption?: string;
 }
 
 export interface OneToOneChatHistoryResponse extends BaseResponse {
@@ -58,14 +53,6 @@ export interface OneToOneChatHistoryResponse extends BaseResponse {
   messages: ChatMessage[];
   isOnline: boolean;
   lastSeenTime?: string | null; // Optional, for displaying last seen time
-}
-
-export interface SearchChatHistoryResponse extends BaseResponse {
-  type: "SEARCH_CHAT_HISTORY_RESULTS";
-  messages: ChatMessage[] | GroupMessage[];
-  chatId?: string;
-  groupId?: string;
-  searchTerm: string;
 }
 
 export interface GroupChatCreatedResponse extends BaseResponse {
@@ -88,40 +75,7 @@ export interface GroupChatResponse extends BaseResponse {
   type: "GROUP_CHAT";
   from: string;
   groupId: string;
-  content?: string;
-  fileUrl?: string;
-  fileName?: string;
-  mimeType?: string;
-  fileSize?: number;
-  caption?: string;
-}
-
-export interface FriendRequestNotificationResponse extends BaseResponse {
-  type: "FRIEND_REQUEST_RECEIVED";
-  from: string;
-  to: string;
-  status: "PENDING";
-}
-
-export interface FriendRequestResponse extends BaseResponse {
-  type: "FRIEND_REQUEST_RESPONSE";
-  from: string;
-  to: string;
-  accepted: boolean;
-  chatId?: string;
-}
-
-export interface FetchFriendRequestsResponse extends BaseResponse {
-  type: "FETCH_FRIEND_REQUESTS_RESPONSE";
-  incomingRequests: FriendRequest[];
-  outgoingRequests: FriendRequest[];
-}
-
-export interface FriendsMetaResponse extends BaseResponse {
-  type: "FETCH_FRIENDS_META_RESPONSE";
-  friends: string[];
-  incomingRequests: FriendRequest[];
-  outgoingRequests: FriendRequest[];
+  content: string;
 }
 
 export interface StatusChangeResponse extends BaseResponse {
@@ -139,15 +93,10 @@ export type OutgoingResponse =
   | NewOneToOneChatApprovalResponse
   | MessageResponse
   | OneToOneChatHistoryResponse
-  | SearchChatHistoryResponse
   | GroupChatCreatedResponse
   | GroupMemberJoinedResponse
   | GroupChatHistoryResponse
   | GroupChatResponse
-  | FriendRequestNotificationResponse
-  | FriendRequestResponse
-  | FetchFriendRequestsResponse
-  | FriendsMetaResponse
   | StatusChangeResponse;
 
 // Data model types
@@ -156,23 +105,13 @@ export interface ChatMessage {
   from: string;
   to: string;
   content?: string;
-  fileUrl?: string;
-  fileName?: string;
-  mimeType?: string;
-  fileSize?: number;
-  caption?: string;
   chatId?: string;
 }
 
 export interface GroupMessage {
   id?: string;
   from: string;
-  text?: string;
-  fileUrl?: string;
-  fileName?: string;
-  mimeType?: string;
-  fileSize?: number;
-  caption?: string;
+  text: string;
   timestamp: string;
   groupId?: string;
 }
@@ -183,13 +122,6 @@ export interface User {
   email: string;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface FriendRequest {
-  requester: string;
-  recipient: string;
-  status: "PENDING" | "ACCEPTED" | "DECLINED";
-  createdAt: string;
 }
 
 export interface Friendship {

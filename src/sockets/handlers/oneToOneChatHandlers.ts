@@ -7,14 +7,12 @@ import { chatConnectionManager } from "../../services/connectionService";
 import { prisma } from "../../services/prisma";
 import { getClient } from "../../services/redis";
 import {
-  FileMessage,
   GetOneToOneChatHistoryMessage,
   NewOneToOneChatMessage,
   OneToOneChatMessage,
 } from "../../types/messageTypes";
 import { generateChatId } from "../../utils/chatId";
 import { snowflakeIdGenerator } from "../../utils/snowflake";
-import { saveFileFromBase64 } from "../../utils/fileStorage";
 import { WsResponse } from "../../utils/wsResponse";
 import { WsValidation } from "../../utils/wsValidation";
 
@@ -194,61 +192,9 @@ export async function oneToOneChatHandler(
     );
   } catch (error) {
     console.error("Error in oneToOneChatHandler:", error);
+    // Only send error if WebSocket is still open
     if (ws.readyState === WebSocket.OPEN) {
       WsResponse.error(ws, "Failed to send message. Please try again.");
-    }
-  }
-}
-
-export async function oneToOneFileMessageHandler(
-  ws: WebSocket,
-  parsed: FileMessage
-): Promise<void> {
-  const { from: fromUsername, to: toUsername, chatId, fileName, fileType, fileBase64, caption } = parsed;
-
-  if (!fromUsername || !toUsername || !chatId || !fileName || !fileType || !fileBase64) {
-    WsResponse.error(
-      ws,
-      "From, to, chat ID, file name, file type, and file data are required.",
-    );
-    return;
-  }
-
-  if (!(await WsValidation.validateUser(ws, fromUsername))) return;
-  if (!(await WsValidation.validateUser(ws, toUsername))) return;
-  if (!WsValidation.validateSelfChat(ws, fromUsername, toUsername)) return;
-
-  try {
-    const savedFile = await saveFileFromBase64(fileBase64, fileName, fileType);
-    const filePayload = {
-      type: "file",
-      url: savedFile.fileUrl,
-      fileName: savedFile.fileName,
-      mimeType: savedFile.mimeType,
-      fileSize: savedFile.fileSize,
-      caption: caption || null,
-    };
-
-    const messageText = JSON.stringify(filePayload);
-    const messageId = snowflakeIdGenerator();
-
-    await Promise.all([
-      insertOneToOneChat(chatId, fromUsername, toUsername, messageText, messageId),
-      deliverMessage(
-        fromUsername,
-        toUsername,
-        messageText,
-        chatId,
-        messageId,
-        ws,
-      ),
-    ]);
-
-    WsResponse.success(ws, "File sent successfully.");
-  } catch (error) {
-    console.error("Error in oneToOneFileMessageHandler:", error);
-    if (ws.readyState === WebSocket.OPEN) {
-      WsResponse.error(ws, "Failed to send file. Please try again.");
     }
   }
 }

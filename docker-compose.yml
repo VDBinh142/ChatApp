@@ -1,224 +1,68 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # PostgreSQL - for Users (auth-service), Groups/Friends (chat-service), OfflineMessages (notification-service)
-  postgres:
-    image: postgres:15-alpine
-    container_name: chat-postgres
-    environment:
-      POSTGRES_USER: chat_user
-      POSTGRES_PASSWORD: chat_password
-      POSTGRES_DB: chat_db
+  # Real-Time Chat Application
+  chat-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: real-time-chat-app:latest
+    container_name: real-time-chat-app
+    restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "3000:3000" # HTTP server port
+      - "4000:4000" # WebSocket server port
+      - "5000:5000" # Presence WebSocket server port
+    env_file:
+      - .env
+    environment:
+      - SERVER_ID=chat-app-1
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./logs:/app/logs # Mount logs directory
+      - ./secure-connect-my-cassandra-db.zip:/app/secure-connect-my-cassandra-db.zip:ro # Mount Cassandra bundle
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chat_user -d chat_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-  # Cassandra - for Messages, GroupMessages (chat-service only)
-  cassandra:
-    image: cassandra:4-alpine
-    container_name: chat-cassandra
-    environment:
-      CASSANDRA_CLUSTER_NAME: chat-cluster
-      CASSANDRA_DC: datacenter1
-      CASSANDRA_RACK: rack1
+  # Real-Time Chat Application - Instance 2
+  chat-app-2:
+    image: real-time-chat-app:latest
+    container_name: real-time-chat-app-2
+    restart: unless-stopped
     ports:
-      - "9042:9042"
+      - "3001:3000" # HTTP server port
+      - "4001:4000" # WebSocket server port
+      - "5001:5000" # Presence WebSocket server port
+    env_file:
+      - .env
+    environment:
+      - SERVER_ID=chat-app-2
     volumes:
-      - cassandra_data:/var/lib/cassandra
+      - ./logs:/app/logs # Mount logs directory
+      - ./secure-connect-my-cassandra-db.zip:/app/secure-connect-my-cassandra-db.zip:ro # Mount Cassandra bundle
     healthcheck:
-      test: ["CMD-SHELL", "cqlsh -e 'SELECT cluster_name FROM system.local;' || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Redis - for presence, caching, pub/sub, connection routing (shared)
-  redis:
-    image: redis:7-alpine
-    container_name: chat-redis
-    command: redis-server --appendonly yes --requirepass redis_password
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redis_password", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # RabbitMQ - for cross-service events (image resize, emails, offline messages, etc.)
-  rabbitmq:
-    image: rabbitmq:3.12-management-alpine
-    container_name: chat-rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    ports:
-      - "5672:5672"    # AMQP
-      - "15672:15672"  # Management UI
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Auth Service (port 3001)
-  auth-service:
-    build:
-      context: ./services/auth-service
-      dockerfile: Dockerfile
-    container_name: chat-auth-service
-    environment:
-      PORT: 3001
-      NODE_ENV: development
-      DATABASE_URL: postgresql://chat_user:chat_password@postgres:5432/chat_db
-      JWT_SECRET: chat_jwt_secret_key_change_in_prod
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: redis_password
-    ports:
-      - "3001:3001"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Chat Service (port 3002)
-  chat-service:
-    build:
-      context: ./services/chat-service
-      dockerfile: Dockerfile
-    container_name: chat-chat-service
-    environment:
-      PORT: 3002
-      NODE_ENV: development
-      DATABASE_URL: postgresql://chat_user:chat_password@postgres:5432/chat_db
-      JWT_SECRET: chat_jwt_secret_key_change_in_prod
-      CASSANDRA_CONTACT_POINTS: cassandra
-      CASSANDRA_KEYSPACE: chat_keyspace
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: redis_password
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-    ports:
-      - "3002:3002"
-      - "4000:4000"  # WebSocket chat
-    depends_on:
-      postgres:
-        condition: service_healthy
-      cassandra:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Presence Service (port 3003)
-  presence-service:
-    build:
-      context: ./services/presence-service
-      dockerfile: Dockerfile
-    container_name: chat-presence-service
-    environment:
-      PORT: 3003
-      NODE_ENV: development
-      JWT_SECRET: chat_jwt_secret_key_change_in_prod
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: redis_password
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-    ports:
-      - "3003:3003"
-      - "5000:5000"  # WebSocket presence
-    depends_on:
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Notification Service (port 3004)
-  notification-service:
-    build:
-      context: ./services/notification-service
-      dockerfile: Dockerfile
-    container_name: chat-notification-service
-    environment:
-      PORT: 3004
-      NODE_ENV: development
-      DATABASE_URL: postgresql://chat_user:chat_password@postgres:5432/chat_db
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-      JWT_SECRET: chat_jwt_secret_key_change_in_prod
-    ports:
-      - "3004:3004"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # API Gateway (port 3000 - client entry point)
-  gateway:
-    build:
-      context: ./services/gateway
-      dockerfile: Dockerfile
-    container_name: chat-gateway
-    environment:
-      PORT: 3000
-      NODE_ENV: development
-      JWT_SECRET: chat_jwt_secret_key_change_in_prod
-      AUTH_SERVICE_URL: http://auth-service:3001
-      CHAT_SERVICE_URL: http://chat-service:3002
-      PRESENCE_SERVICE_URL: http://presence-service:3003
-      NOTIFICATION_SERVICE_URL: http://notification-service:3004
-    ports:
-      - "3000:3000"
-    depends_on:
-      - auth-service
-      - chat-service
-      - presence-service
-      - notification-service
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres_data:
-  cassandra_data:
-  redis_data:
-  rabbitmq_data:
-
-networks:
-  default:
-    name: chat-network
-    driver: bridge
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

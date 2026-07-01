@@ -1,429 +1,786 @@
-# Real-Time Chat Application - Microservices Architecture
+# Real-Time Chat Application
 
-A scalable, event-driven real-time chat application built with **microservices architecture**, featuring JWT authentication, WebSocket support, friend request system with email notifications, and multi-database persistence.
+A high-performance, scalable real-time chat application built with Node.js, WebSocket, and modern database technologies. This application supports both one-to-one and group messaging with real-time presence tracking, offline message queuing, and comprehensive load testing capabilities.
 
-## 🏗️ Architecture
+## 🏗 System Architecture & Design
 
-The application is split into **5 microservices** that communicate via HTTP, WebSockets, RabbitMQ events, and shared databases:
+### High-Level Overview
 
+Our chat application is built with a multi-layered architecture designed for high performance and scalability:
+
+![High Level Overview](pics/High%20Level%20Overview.png)
+
+### 🔐 Authentication & Connection Setup
+
+The application uses JWT-based authentication with secure WebSocket connection establishment:
+
+![Authentication & Connection Setup](pics/Authentication%20&%20Connection%20Setup.png)
+
+### 💬 One-to-One Chat Architecture
+
+#### Chat Overview
+![One to One Chat Overview](pics/One%20to%20One%20Chat%20Overview.png)
+
+#### Local Message Delivery (Same Server)
+For users connected to the same server instance:
+
+![Local Message Delivery (Same Server)](pics/Local%20Message%20Delivery%20(Same%20Server).png)
+
+#### Cross-Server Message Delivery
+For users connected to different server instances in a clustered environment:
+
+![Cross-Server Message Delivery](pics/Cross-Server%20Message%20Delivery.png)
+
+#### Chat Delivery Deep Dive
+Detailed message flow and processing pipeline:
+
+![Chat Delivery Deep Dive](pics/Chat%20Delivery%20Deep%20Dive.png)
+
+### 👥 Group Chat Architecture
+
+#### Group Chat Overview
+![Group Chat Overview](pics/Group%20Chat%20Overview.png)
+
+#### Group Chat & Offline Message Handling
+Comprehensive handling of group messages and offline user scenarios:
+
+![Group Chat & Offline Message Handling](pics/Group%20Chat%20&%20Offline%20Message%20Handling.png)
+
+### 🟢 Presence Tracking System
+
+#### Presence Tracking & Status Updates
+Real-time user presence detection and status management:
+
+![Presence Tracking & Status Updates](pics/Presence%20Tracking%20&%20Status%20Updates.png)
+
+#### Presence Servers Deep Dive
+Detailed architecture of the presence detection system:
+
+![Presence Servers Deep Dive](pics/Presence%20Servers%20Deep%20Dive.png)
+
+### 🗄️ Database Architecture
+
+#### Database Design Overview
+![Database Design](pics/Database%20Design.png)
+
+#### PostgreSQL Schema (Prisma ORM)
+Detailed entity-relationship diagram:
+
+![Postgres ER Diagram](pics/Postgres%20ER%20Diagram.png)
+
+**PostgreSQL Tables:**
+- **Users**: Authentication and user management
+- **Friendships**: One-to-one chat relationships
+- **Groups**: Group chat metadata
+- **GroupMembership**: User-group relationships
+- **OfflineMessages**: Queue for offline message delivery
+
+**Cassandra Tables:**
+- **Messages**: Chat message storage with partitioning by chat_id
+- **GroupMessages**: Group chat message storage with partitioning by group_id
+
+**Redis Data Structures:**
+- **User Sessions**: Active user session management with expiration
+- **Message Cache**: Frequently accessed messages with TTL
+- **Bloom Filters**: Efficient cache existence checks
+- **Presence Data**: Real-time user status with heartbeat tracking
+
+## 📊 Performance Benchmarks & Results
+
+### System Capacity Improvement: P2 Medium Load vs P4 Stress Test
+
+| Test Configuration | P2 (MVP Working) | P4 (Final Optimized) | Improvement |
+|-------------------|------------------|----------------------|-------------|
+| **User Load** | 25 users, 60 seconds | **100 users, 120 seconds** | **4x more users** |
+| **Test Duration** | 60 seconds | 120 seconds | **2x longer duration** |
+| **Overall Complexity** | Medium Load | **Stress Test** | **Much higher complexity** |
+
+### Performance Metrics Comparison
+
+| Metric | P2 (25 Users) | P4 (100 Users) | Improvement |
+|--------|---------------|----------------|-------------|
+| **Total Users Created** | 1,050 | **8,400** | **8x increase** |
+| **Messages Sent** | 8,080 | **84,000** | **10.4x increase** |
+| **Messages Sent Rate** | 147 msg/sec | **721 msg/sec** | **4.9x faster** |
+| **WebSocket Send Rate** | 146 msg/sec | **773 msg/sec** | **5.3x faster** |
+| **Failed Users** | 294 (28% failure rate) | **40 (0.5% failure rate)** | **56x fewer failures** |
+| **Success Rate** | 72% | **99.5%** | **27.5% improvement** |
+
+### Latency Performance Under Higher Load
+
+| Latency Metric | P2 (25 Users) | P4 (100 Users) | Improvement |
+|----------------|---------------|----------------|-------------|
+| **Handshake Latency (Mean)** | 4.3ms | **4.3ms** | **Same performance with 4x load** |
+| **Handshake Latency (P95)** | 10.1ms | **6.4ms** | **37% faster** |
+| **Handshake Latency (P99)** | 18.7ms | **8.8ms** | **53% faster** |
+| **Message Latency (Mean)** | 0.2ms | **0.1ms** | **50% faster** |
+| **Message Latency (P95)** | 0.3ms | **0.2ms** | **33% faster** |
+| **Message Latency (P99)** | 0.5ms | **0.2ms** | **60% faster** |
+
+### System Reliability Under Stress
+
+| Reliability Metric | P2 (25 Users) | P4 (100 Users) | Improvement |
+|--------------------|---------------|----------------|-------------|
+| **WebSocket Errors** | 52 connection errors | **40 total errors** | **Better reliability with 4x load** |
+| **Authentication Errors** | 240+ auth failures | **0 auth failures** | **100% elimination** |
+| **System Stability** | Degraded under load | **Stable under stress** | **Enterprise-grade reliability** |
+
+### Key System Capacity Achievements
+
+#### **Scalability Breakthrough**
+- **4x user capacity**: P4 handles 100 concurrent users vs P2's 25-user limit
+- **2x longer test duration**: Sustained performance over 120 seconds vs 60 seconds
+- **10.4x message throughput**: Processing 84,000 messages vs 8,080 messages
+- **Same latency performance**: Maintained 4.3ms handshake latency despite 4x load
+
+#### **Enterprise-Grade Reliability**
+- **99.5% success rate** under stress load vs 72% under medium load
+- **Zero authentication failures** eliminated the primary P2 bottleneck
+- **Consistent sub-millisecond response times** even with 8x more concurrent operations
+- **Stable session management** with 4.6x faster session processing
+
+#### **Performance Optimization Impact**
+- **5x faster message processing** while handling 4x more users
+- **53% faster P99 handshake latency** under much higher load
+- **60% faster message delivery** across all percentiles
+- **9x more consistent session lengths** with dramatically reduced variance
+
+### Architecture Evolution Impact
+
+The comparison between P2's **medium load failure** (25 users) and P4's **stress test success** (100 users) demonstrates:
+
+1. **Redis Multi-layered Caching**: Eliminated database bottlenecks that caused P2 authentication failures
+2. **Connection Pool Optimization**: Handled 4x more concurrent connections with better stability
+3. **Memory Management**: Efficient data structures prevented memory-related performance degradation
+4. **Database Query Optimization**: Sub-millisecond query performance maintained under 8x higher throughput
+
+**Result**: The system evolved from a **prototype that failed at medium load** to an **enterprise-ready platform that excels under stress conditions** while maintaining superior performance metrics across all dimensions.
+
+## 🔧 Detailed System Design & Engineering Trade-offs
+
+### ⚖️ Architectural Trade-offs Overview
+
+**Database Strategy:**
+- **PostgreSQL**: ACID compliance for user data and relationships
+- **Cassandra**: High write throughput and horizontal scaling for messages
+- **Redis**: Sub-millisecond access times for frequently accessed data
+
+**Caching Strategy:**
+- **Multi-layered caching**: Bloom filters → Redis → Database
+- **Cache invalidation**: Time-based TTL with selective purging
+- **Memory optimization**: Bloom filters reduce unnecessary Redis queries
+
+**Connection Management:**
+- **WebSocket clustering**: Horizontal scaling with Redis pub/sub
+- **Connection pooling**: Efficient resource utilization
+- **Graceful degradation**: Fallback mechanisms for server failures
+
+**Message Delivery:**
+- **At-least-once delivery**: Guaranteed message delivery with deduplication
+- **Offline message queue**: Background job processing with BullMQ
+- **Real-time vs. persistent**: WebSocket for real-time, database for persistence
+
+### **Trade-Off #1: Decoupled Server Architecture**
+
+**Decision**: Use **three separate servers** instead of a monolithic WebSocket server:
+- **HTTP Server** (Port 3000) → Authentication, registration, and RESTful routes
+- **WebSocket Chat Server** (Port 4000) → Direct and group messaging
+- **WebSocket Presence Server** (Port 5000) → Online/offline status tracking
+
+**Reasoning**:
+- **Separation of concerns** enables cleaner code and independent scaling
+- **Different real-time patterns**: Chat requires guaranteed delivery, presence uses fire-and-forget
+- **Future horizontal scaling**: Chat and presence servers can scale independently based on different usage patterns
+
+**Trade-offs**:
+- Slightly more complex deployment (multiple services and ports)
+- Separate JWT authentication required for each WebSocket connection
+- Heavier local development setup but better production flexibility
+
+---
+
+### **Trade-Off #2: Multi-Database Architecture**
+
+**Decision**: **PostgreSQL for metadata, Cassandra for messages**
+
+**PostgreSQL stores**:
+- User profiles (usernames, hashed passwords)
+- Group metadata (group ID, name, members, creator)
+- Offline message queue (message pointers only)
+
+**Cassandra stores**:
+- All chat messages (1-to-1 and group)
+- Message delivery tracking
+- High-volume, append-only data
+
+**Reasoning**:
+- **Messages are append-heavy** and can grow to billions of records - Cassandra excels at high-throughput writes
+- **No relational queries needed** for messages - key-based lookups by chat_id/group_id are sufficient
+- **Write-heavy operations** shouldn't bottleneck on relational constraints or ACID overhead
+
+**Trade-offs**:
+- Managing two database systems increases operational complexity
+- No foreign key constraints between messages and users - consistency enforced at application level
+- Higher infrastructure costs but dramatically better performance at scale
+
+---
+
+### **Trade-Off #3: PostgreSQL for Offline Queue**
+
+**Decision**: Store offline message queue in **PostgreSQL** with pointers to Cassandra messages
+
+**Reasoning**:
+- **High churn rate**: Offline queue data is written and quickly deleted after delivery
+- **PostgreSQL optimized** for transactional DELETE operations
+- **Cassandra anti-pattern**: Frequent deletes create tombstones, degrading read performance and requiring expensive compaction
+
+**Trade-offs**:
+- Single message event requires writes to both Cassandra (message) and PostgreSQL (queue pointer)
+- Cannot store all message-related data in one system
+- **Positive trade-off**: Uses each database for its optimal use case
+
+---
+
+### **Trade-Off #4: DELETE-on-ACK Strategy**
+
+**Decision**: **DELETE-on-ACK** for offline queue management instead of UPDATE-on-ACK
+
+**Reasoning**:
+- **Simplest workflow**: Message lifecycle in queue ends with acknowledgment
+- **Lean performance**: OfflineMessages table only contains actively pending deliveries
+- **No cleanup jobs**: Avoids complex cron jobs and scheduled maintenance
+
+```javascript
+// Simple acknowledgment flow
+async function acknowledgeDelivery(messageId) {
+  await prisma.offlineMessages.delete({
+    where: { message_id: messageId }
+  });
+}
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          Client Applications                         │
-│                    (Web, Mobile, Desktop)                            │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │
-                        ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                        API Gateway (3000)                           │
-│                    - JWT Verification                               │
-│                    - Request Routing                                │
-│                    - WebSocket Upgrade                              │
-└──────┬──────────┬──────────┬──────────┬──────────────────────────────┘
-       │          │          │          │
-    3001      3002       3003       3004
-       ▼          ▼          ▼          ▼
-┌─────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────┐
-│   Auth   │ │  Chat    │ │ Presence │ │  Notification    │
-│ Service  │ │ Service  │ │ Service  │ │    Service       │
-│          │ │ + Images │ │ + Online │ │ + Email Worker   │
-│ - JWT    │ │          │ │ Tracking │ │                  │
-│ - Users  │ │ - Friends│ │          │ │ - Consumes       │
-│ - Auth   │ │ - Groups │ │ - Sockets│ │   RabbitMQ       │
-│          │ │ - Messag│ │          │ │ - Sends Emails   │
-└──────────┘ │  -Sockets│ │ - Redis  │ └──────────────────┘
-             └──────────┘ └──────────┘
-                 ▼
-         ┌──────────────────────┐
-         │  Shared Infrastructure │
-         │  - PostgreSQL (Users) │
-         │  - PostgreSQL (Chat)  │
-         │  - Cassandra (Messages)
-         │  - Redis (Cache/Presence/PubSub)
-         │  - RabbitMQ (Events) │
-         └──────────────────────┘
+
+**Trade-offs**:
+- **Lost audit trail**: No record of what was delivered offline and when
+- Alternative UPDATE-on-ACK would provide audit trail but adds complexity and performance overhead
+- **Acceptable trade-off**: Audit trail not critical for core chat functionality
+
+---
+
+### **Trade-Off #5: NOTIFY-on-RECONNECT Strategy**
+
+**Decision**: **NOTIFY-on-RECONNECT** instead of DELIVER-on-RECONNECT
+
+**Reasoning**:
+- **Fast reconnects**: Lightweight notifications keep connection establishment sub-second
+- **Reduced backend load**: Defers expensive Cassandra batch reads until user opens specific chat
+- **Better UX**: Users see unread counts and choose when to consume messages (like WhatsApp/Discord)
+- **Scalable**: Performance doesn't degrade with number of missed messages
+
+**Trade-offs**:
+- Users don't see actual message content until opening conversation
+- Requires additional logic to resolve user/group IDs to readable names
+- Slight perceived latency when opening busy chats for first time after reconnect
+- **Positive trade-off**: Optimizes for performance and user control
+
+---
+
+### **Trade-Off #6: Redis Pub/Sub vs Redis Streams**
+
+**Decision**: **Redis Pub/Sub for presence, Redis Streams for chat**
+
+**Redis Pub/Sub (Presence)**:
+- **"Fire-and-forget"** delivery model
+- Perfect for ephemeral data like "user is typing" or online status
+- If presence update is missed, minimal impact on user experience
+
+**Redis Streams (Chat)**:
+- **"At-least-once"** delivery guarantee
+- Persistent log-based messaging with consumer groups
+- Critical for chat messages where loss is unacceptable
+
+**Reasoning**:
+- **Different reliability requirements**: Chat messages must never be lost, presence can tolerate occasional misses
+- **Performance optimization**: Pub/Sub has lower latency for non-critical updates
+- **Fault tolerance**: Streams provide automatic retry and acknowledgment mechanisms
+
+**Trade-offs**:
+- Managing two different Redis messaging patterns increases complexity
+- **Positive trade-off**: Each system optimized for its specific reliability requirements
+
+---
+
+### **Trade-Off #7: Two-Stage Acknowledgment System**
+
+**Decision**: Implement **two-stage ACK** for cross-server message delivery
+
+**Flow**:
+1. Worker on **Server C** receives message for user on **Server B**
+2. **Server C** forwards via internal Pub/Sub channel
+3. **Server B** delivers to user's WebSocket connection
+4. **Server B** sends internal ACK back to **Server C**
+5. **Server C** sends final XACK to Redis Stream
+
+**Reasoning**:
+- **Fault tolerance**: Worker crash mid-process won't lose messages
+- **Guaranteed delivery**: Message marked complete only after confirmed delivery
+- **Pragmatic balance**: Considers message "delivered" at server level, not waiting for browser ACK
+
+**Trade-offs**:
+- Increased complexity with internal acknowledgment channels
+- Slight latency overhead for cross-server delivery
+- **Acceptable trade-off**: Robust guarantee without waiting for unreliable browser confirmation
+
+---
+
+### **Trade-Off #8: Central Connection Directory**
+
+**Decision**: Use **Redis as central "phone book"** for user location tracking
+
+```javascript
+// Track user connections across servers
+await redis.set(`user-location:${username}`, serverId, 'EX', 300);
+
+// Route messages to correct server
+const targetServer = await redis.get(`user-location:${recipient}`);
+if (targetServer !== currentServerId) {
+  await redis.publish(`server-mail:${targetServer}`, messageData);
+}
 ```
 
-## 📦 Services
+**Reasoning**:
+- **Eliminates wasted work**: Only one server processes each message
+- **Efficient routing**: Messages find correct server without broadcast
+- **Server independence**: No need for sticky sessions or direct server-to-server connections
 
-| Service | Port | Responsibility | Database |
-|---------|------|---|---|
-| **Gateway** | 3000 | JWT verification, routing, WebSocket upgrade | — |
-| **Auth** | 3001 | User registration, login, JWT issuance | PostgreSQL |
-| **Chat** | 3002 | Messages, groups, friends, images | PostgreSQL + Cassandra |
-| **Presence** | 3003 | Online/offline status, heartbeat | Redis |
-| **Notification** | 3004 | Email delivery, offline message queue | PostgreSQL |
+**Trade-offs**:
+- Single point of failure if Redis is down (mitigated with Redis clustering)
+- Additional Redis operations for every message routing decision
+- **Positive trade-off**: Dramatic efficiency gains outweigh small Redis overhead
 
-## 🚀 Quick Start
+---
+
+### **Trade-Off #9: Avoiding Sticky Sessions**
+
+**Decision**: **Reject sticky sessions** in favor of Redis-based coordination
+
+**Reasoning**:
+- **Single point of failure**: If assigned server goes down, all users disconnected
+- **Scaling limitations**: Uneven load distribution as users can't be rebalanced
+- **Operational complexity**: Load balancer configuration and session affinity management
+
+**Alternative chosen**: Redis coordination allows users to connect to any server
+
+**Trade-offs**:
+- More complex message routing logic
+- Dependency on Redis for coordination
+- **Major benefit**: True horizontal scaling and fault tolerance
+
+---
+
+## 🎯 Product Decision: Presence Notifications
+
+### **Decision**: **No "user is online" pop-up notifications**
+
+**Technical Implementation Ready**: We built the complete infrastructure:
+- Redis Pub/Sub for real-time presence events
+- Intelligent state management to prevent spam from unstable connections
+- Efficient fan-out architecture across multiple servers
+
+**Product Decision**: Dropped the feature for **better user experience**
+
+**Reasoning**:
+- **Ambient information**: User presence is better displayed as subtle status indicators
+- **Notification fatigue**: Pop-ups for every friend coming online would be spammy
+- **Modern chat patterns**: Apps like Discord/Slack show presence without interrupting workflow
+
+**Trade-off**: Technical capability vs. product restraint - choosing cleaner UX over feature complexity
+
+---
+
+## 🚀 Features & Technology Stack
+
+### Core Chat Features
+- **Real-time Messaging**: Instant one-to-one and group chat functionality
+- **User Authentication**: Secure JWT-based authentication system
+- **Online/Offline Status**: Ping-pong mechanism to detect and track user online/offline status
+- **Group Management**: Create, join, and manage group conversations
+- **Message History**: Persistent message storage and retrieval
+- **Offline Message Queue**: Messages delivered when users come back online
+
+### Performance & Scalability
+- **Multi-layered Caching**: Redis + Bloom filters for optimal performance
+- **Database Sharding**: Cassandra for message storage, PostgreSQL for user data
+- **Connection Pooling**: Efficient WebSocket connection management
+- **Load Balancing**: Cluster mode support for horizontal scaling
+- **Background Workers**: Queue-based offline message processing
+
+### Developer Experience
+- **Load Testing**: Comprehensive Artillery-based performance testing
+- **Test Clients**: Multiple test clients for different scenarios
+- **Docker Support**: Containerized deployment with Docker Compose
+- **Monitoring**: Winston logging with structured log output
+- **Type Safety**: Full TypeScript implementation
+
+### Technology Stack
+
+#### Backend
+- **Runtime**: Node.js with TypeScript
+- **WebSocket**: ws library for real-time communication
+- **HTTP Server**: Express.js
+- **Authentication**: JWT + bcrypt
+
+#### Databases
+- **PostgreSQL**: User management, friendships, groups (via Prisma ORM)
+- **Apache Cassandra**: Message storage and chat history
+- **Redis**: Caching, session management, and Bloom filters
+- **BullMQ**: Job queue for offline message processing
+
+#### Infrastructure
+- **Docker**: Containerization and orchestration
+- **Clustering**: Multi-process scaling
+- **Logging**: Winston with structured logging
+- **Health Checks**: Built-in health monitoring
+
+## 🗄 Database Schema
+
+### PostgreSQL (Prisma)
+- **Users**: Authentication and user management
+- **Friendships**: One-to-one chat relationships
+- **Groups**: Group chat metadata
+- **GroupMembership**: User-group relationships
+- **OfflineMessages**: Queue for offline message delivery
+
+### Cassandra
+- **Messages**: Chat message storage with partitioning
+- **GroupMessages**: Group chat message storage
+
+### Redis
+- **User Sessions**: Active user session management
+- **Message Cache**: Frequently accessed messages
+- **Bloom Filters**: Efficient cache existence checks
+- **Presence Data**: Real-time user status
+
+## 📋 Prerequisites & Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose
-- Node.js 18+ (for local development)
-- npm or yarn
+- Node.js 18+ and npm
+- Docker and Docker Compose
+- PostgreSQL database
+- Redis server
+- Apache Cassandra database
+- Git
 
-### Start All Services
+### Quick Start
+
+#### 1. Clone the Repository
 ```bash
-# Clone repository
-git clone <repo-url>
-cd Real-Time-Chat-App
-
-# Start all services (PostgreSQL, Cassandra, Redis, RabbitMQ, and 5 microservices)
-docker-compose up
-
-# Wait for all services to be healthy
-# Look for: ✅ {service-name} listening on port {port}
+git clone https://github.com/MonarchRyuzaki/Real-Time-Chat-App
+cd real-time-chat-app
 ```
 
-### Local Development (Without Docker)
+#### 2. Install Dependencies
 ```bash
-# Install dependencies (from root)
 npm install
-
-# Setup environment variables
-cp .env.example .env
-
-# Start auth-service
-cd services/auth-service && npm install && npm run dev
-
-# Start chat-service (in another terminal)
-cd services/chat-service && npm install && npm run dev
-
-# Start other services similarly...
 ```
 
-## 📡 API Endpoints
+#### 3. Environment Configuration
+Copy the example environment file and configure your settings:
+
+```bash
+cp .env.example .env
+```
+
+Then edit the `.env` file with your actual configuration values. See `.env.example` for all required environment variables and their descriptions.
+
+**Key configuration items:**
+- **JWT Secrets**: Generate strong, unique secrets for JWT tokens
+- **Database URLs**: PostgreSQL connection string
+- **Cassandra**: DataStax Astra DB credentials and keyspace
+- **Redis**: Redis Cloud or local Redis configuration
+- **CORS**: Configure allowed origins for your deployment
+
+#### 4. Database Setup
+
+**PostgreSQL Setup**
+```bash
+# Generate Prisma client
+npm run db:generate
+
+# Run database migrations
+npm run db:migrate
+
+# (Optional) Seed with dummy data
+npm run create-dummy-users
+npm run create-chats
+npm run create-groups
+```
+
+**Cassandra Setup**
+Set up your DataStax Astra DB keyspace and tables using the configuration from your `.env` file. The application will automatically create the necessary tables on first connection.
+
+#### 5. Start the Application
+
+**Development Mode**
+```bash
+npm run dev
+```
+
+**Production Mode**
+```bash
+npm run build
+npm start
+```
+
+**Docker Mode**
+```bash
+npm run docker:up
+```
+
+## 🖥 Application Endpoints
+
+### HTTP Server (Port 3000)
+- `GET /health` - Health check endpoint
+- `POST /auth/register` - User registration
+- `POST /auth/login` - User authentication
+- `POST /auth/logout` - User logout
+
+### WebSocket Servers
+- **Chat Server (Port 4000)**: Real-time messaging
+- **Presence Server (Port 5000)**: Online/offline status detection via ping-pong mechanism
+
+## 🔌 WebSocket API
 
 ### Authentication
-```bash
-# Register new user
-POST /auth/register
-Content-Type: application/json
+All WebSocket connections require authentication via JWT token.
+
+### Message Types
+
+#### One-to-One Chat
+```json
 {
-  "username": "alice",
-  "password": "securepassword123"
+  "type": "ONE_TO_ONE_CHAT",
+  "from": "username1",
+  "to": "username2",
+  "content": "Hello!",
+  "chatId": "generated-chat-id"
 }
+```
 
-# Login
-POST /auth/login
+#### Group Chat
+```json
 {
-  "username": "alice",
-  "password": "securepassword123"
+  "type": "GROUP_CHAT",
+  "from": "username",
+  "groupId": "group-id",
+  "content": "Hello group!"
 }
-# Response: { "token": "eyJhbGc...", "username": "alice" }
-
-# Logout (requires JWT)
-POST /auth/logout
-Authorization: Bearer {token}
 ```
 
-### Friend Requests
-```bash
-# Send friend request
-POST /chat/friendship/create
-Authorization: Bearer {token}
+#### Get Chat History
+```json
 {
-  "receiverId": "bob-id",
-  "content": "Lets be friends!"
+  "type": "GET_ONE_TO_ONE_HISTORY",
+  "from": "username1",
+  "to": "username2",
+  "chatId": "chat-id"
 }
-
-# Accept friend request
-PUT /chat/friendship/accept/{requestId}
-Authorization: Bearer {token}
-
-# Deny friend request
-PUT /chat/friendship/deny/{requestId}
-Authorization: Bearer {token}
-
-# Get all friend requests
-GET /chat/friendship
-Authorization: Bearer {token}
 ```
 
-### Image Upload
-```bash
-# Upload image
-POST /chat/upload
-Authorization: Bearer {token}
-Content-Type: multipart/form-data
-(file: image.jpg)
+### WebSocket Events
 
-# Get image
-GET /chat/images/{imageName}
-```
+#### Client → Server
+- `ONE_TO_ONE_CHAT` - Send direct message
+- `GROUP_CHAT` - Send group message
+- `GET_ONE_TO_ONE_HISTORY` - Request chat history
+- `GET_GROUP_CHAT_HISTORY` - Request group history
+- `JOIN_GROUP` - Join a group chat
+- `LEAVE_GROUP` - Leave a group chat
+- `DISCONNECT` - Graceful disconnect
 
-### WebSocket (Real-Time)
-```bash
-# Chat messaging
-ws://localhost:3000/ws/chat?token={jwt_token}
+#### Server → Client
+- `ONE_TO_ONE_CHAT` - Receive direct message
+- `GROUP_CHAT` - Receive group message
+- `ONE_TO_ONE_CHAT_HISTORY` - Chat history response
+- `GROUP_CHAT_HISTORY` - Group history response
+- `PRESENCE_UPDATE` - User status change
+- `ERROR` - Error message
+- `SUCCESS` - Success confirmation
+- `INFO` - Information message
 
-# Presence (online/offline)
-ws://localhost:3000/ws/presence?token={jwt_token}
-```
+## 🧪 Testing & Load Testing
 
-## 🔗 Integration Examples
-
-### Send Friend Request with Email
-1. Client sends `POST /chat/friendship/create` with JWT token
-2. Gateway verifies JWT, routes to chat-service
-3. Chat-service:
-   - Validates request via Zod schema
-   - Stores in PostgreSQL
-   - Emits `FRIEND_REQUEST_SENT` event
-   - Publishes to RabbitMQ `emailQueue`
-4. Notification-service:
-   - Email Worker consumes from `emailQueue`
-   - Calls email sender
-   - Logs/stores delivery status
-
-### Real-Time Messaging
-1. Client connects to `ws://localhost:3000/ws/chat?token={jwt}`
-2. Gateway upgrades connection (WebSocket proxy)
-3. Routes to chat-service WebSocket handler
-4. Messages fan out via Redis Streams
-5. Recipients receive in real-time
-
-## 📁 Project Structure
-
-```
-Real-Time-Chat-App/
-├── shared/                          # Shared by all services
-│   ├── errors/                      # Error handling (KnownErrors)
-│   ├── events/                      # Event emitter + types
-│   ├── forms/                       # Zod validation schemas
-│   ├── middlewares/                 # Shared middleware (validate)
-│   ├── rabbitmq/                    # RabbitMQ helpers
-│   ├── types/                       # Shared TypeScript types
-│   └── utils/
-│
-├── services/
-│   ├── auth-service/
-│   │   ├── src/
-│   │   │   ├── controllers/         # Auth logic
-│   │   │   ├── routes/              # HTTP routes
-│   │   │   ├── middlewares/         # Auth middleware
-│   │   │   ├── services/            # Database clients
-│   │   │   ├── utils/               # Utilities
-│   │   │   └── index.ts
-│   │   ├── package.json
-│   │   ├── tsconfig.json
-│   │   └── Dockerfile
-│   │
-│   ├── chat-service/
-│   │   ├── src/
-│   │   │   ├── controllers/         # Friend requests, images
-│   │   │   ├── routes/              # Chat routes
-│   │   │   ├── sockets/             # WebSocket handlers
-│   │   │   ├── cassandra/           # Cassandra queries
-│   │   │   ├── redis/               # Redis streams
-│   │   │   ├── services/            # Database clients
-│   │   │   └── index.ts
-│   │   ├── ...
-│   │
-│   ├── presence-service/
-│   │   ├── src/
-│   │   │   ├── sockets/             # Presence WebSocket
-│   │   │   ├── services/            # Redis
-│   │   │   └── index.ts
-│   │
-│   ├── notification-service/
-│   │   ├── src/
-│   │   │   ├── workers/             # Email worker
-│   │   │   ├── utils/               # Email sender
-│   │   │   ├── routes/
-│   │   │   ├── services/            # Database clients
-│   │   │   └── index.ts
-│   │
-│   └── gateway/
-│       ├── src/
-│       │   ├── middlewares/         # JWT verification
-│       │   ├── websocket-proxy/     # WS upgrade handler
-│       │   └── index.ts             # HTTP proxy setup
-│
-├── src/                             # Legacy code (reference during migration)
-│   ├── cassandra/                   # To migrate to chat-service
-│   ├── queue/                       # To migrate to notification-service
-│   ├── redis/                       # To migrate to chat-service
-│   └── sockets/                     # To migrate to services
-│
-├── docker-compose.yml               # Service orchestration
-├── ARCHITECTURE.md                  # Architecture docs
-├── FRIEND_REQUEST.md                # Friend request API docs
-├── MIGRATION_GUIDE.md               # Migration patterns
-├── INTEGRATION_SUMMARY.md           # Integration overview
-└── CLEANUP.md                       # Cleanup guide
-```
-
-## 🔐 Security
-
-- **JWT Authentication**: All protected routes require valid JWT token
-- **Request Validation**: Zod schemas validate all inputs
-- **Error Handling**: Consistent error responses via `KnownErrors` class
-- **CORS**: Configured per service (can be tightened for production)
-- **Environment Variables**: Sensitive data in `.env` (not committed)
-
-## 🌐 Environment Variables
-
-Create `.env` file in project root:
+### Load Testing with Artillery
+The project includes comprehensive load testing capabilities:
 
 ```bash
+cd benchmark
+
+# Interactive load testing
+./run-incremental-tests.sh "test_name"
+
+# Automated load testing
+./run-incremental-tests.sh "test_name" "" --auto
+
+# Start from specific test level
+./run-incremental-tests.sh "test_name" "05_stress"
+```
+
+### Test Phases
+1. **Baseline**: 5 users, 20s duration
+2. **Light Load**: 10 users, 30s duration  
+3. **Medium Load**: 25 users, 60s duration
+4. **Heavy Load**: 50 users, 90s duration
+5. **Stress Test**: 100 users, 120s duration
+6. **Peak Load**: 200 users, 150s duration
+7. **Extreme Load**: 400 users, 180s duration
+8. **Overload Test**: 600 users, 210s duration
+9. **Breaking Point**: 800 users, 240s duration
+
+Results are saved in `benchmark/results/{test_name}/` with JSON and HTML reports.
+
+## 📱 Test Client Applications (For Development & Testing)
+
+The project includes several test clients located in the `test/` folder for interactive testing and development purposes:
+
+### Interactive Chat Client
+```bash
+npm run client
+```
+Full-featured chat client with authentication, messaging, and group chat capabilities. Best for manual testing and demonstration.
+
+### Group Chat Test Client
+```bash
+npm run group-test-client
+```
+Specialized client for testing group chat functionality and multi-user interactions.
+
+### Presence Test Client
+```bash
+npm run presence-test-client
+```
+Client for testing user presence tracking and connection handling features.
+
+### Basic Test Client
+```bash
+npm run test-client
+```
+Simple client for basic functionality testing and quick validation of core features.
+
+**Note**: These clients are development tools for testing the chat application functionality. Run them after starting the main application server to interact with the chat system.
+
+**⚠️ Important**: These test clients may not be up to date with the latest API changes, as they were primarily created to ensure the core functionality was working during initial development. They serve as reference implementations but may require updates to work with newer features.
+
+## 🔧 Development
+
+### Available Scripts
+```bash
+# Development
+npm run dev              # Start development server
+npm run dev:watch        # Start with file watching
+
+# Building
+npm run build            # Compile TypeScript
+npm run clean            # Clean dist folder
+
 # Database
-DATABASE_URL=postgresql://chat_user:chat_password@postgres:5432/chat_db
-CASSANDRA_CONTACT_POINTS=cassandra
-CASSANDRA_KEYSPACE=chat_keyspace
+npm run db:migrate       # Run Prisma migrations
+npm run db:generate      # Generate Prisma client
+npm run db:studio        # Open Prisma Studio
+npm run db:push          # Push schema changes
 
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_PASSWORD=redis_password
+# Docker
+npm run docker:build     # Build Docker images
+npm run docker:up        # Start containers
+npm run docker:down      # Stop containers
 
-# RabbitMQ
-RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+# Testing
+npm run client           # Start interactive client
+npm run test-client      # Start basic test client
+npm run group-test-client # Start group chat client
+npm run presence-test-client # Start presence client
 
-# JWT
-JWT_SECRET=your_super_secret_jwt_key_change_in_production
-
-# Ports (optional)
-GATEWAY_PORT=3000
-AUTH_SERVICE_PORT=3001
-CHAT_SERVICE_PORT=3002
-PRESENCE_SERVICE_PORT=3003
-NOTIFICATION_SERVICE_PORT=3004
-
-# Node environment
-NODE_ENV=development
+# Data Generation
+npm run create-dummy-users # Create test users
+npm run create-chats      # Create test chats
+npm run create-groups     # Create test groups
 ```
 
-## 🧪 Testing
+### Project Structure
+```
+src/
+├── index.ts              # Application entry point
+├── mockData.ts           # Test data generation
+├── cassandra/            # Cassandra database operations
+├── config/               # Configuration files
+├── controllers/          # HTTP route controllers
+├── middlewares/          # Express middlewares
+├── prisma/               # Prisma schema and migrations
+├── queue/                # Background job processing
+├── routes/               # Express route definitions
+├── server/               # HTTP and WebSocket servers
+├── services/             # Database service layers
+├── sockets/              # WebSocket message handlers
+├── types/                # TypeScript type definitions
+└── utils/                # Utility functions and helpers
+```
+
+## 🚀 Deployment
+
+Refer to `.env.example` for all required environment variables. Make sure to set `NODE_ENV=production` and use strong, unique secrets for production deployment.
+
+## 📊 Monitoring & Logging
 
 ### Health Checks
-```bash
-# All services should respond with 200 OK
-curl http://localhost:3000/health   # Gateway
-curl http://localhost:3001/health   # Auth
-curl http://localhost:3002/health   # Chat
-curl http://localhost:3003/health   # Presence
-curl http://localhost:3004/health   # Notification
-```
+- HTTP health endpoint: `GET /health`
+- Docker health checks included
+- Database connection monitoring
 
-### End-to-End Flow
-See `FRIEND_REQUEST.md` for complete testing guide
+### Logging
+- Structured JSON logging with Winston
+- Request/response logging with Morgan
+- Error tracking and debugging
+- Performance metrics
 
-### RabbitMQ Management UI
-```
-http://localhost:15672
-Username: guest
-Password: guest
-```
+### Performance Metrics & Benchmarking
 
-## 📊 Databases
+#### Tracked Metrics
+Our comprehensive load testing with Artillery tracks the following key performance indicators:
 
-### PostgreSQL (Port 5432)
-- **auth-service**: Users table
-- **chat-service**: Groups, GroupMembers, FriendRequests, Images
-- **notification-service**: OfflineMessages
+- **Message Throughput**: Messages sent per second and WebSocket send rate
+- **Connection Performance**: Handshake latency and connection establishment time
+- **Response Latency**: Message delivery latency (P50, P95, P99 percentiles)
+- **User Capacity**: Concurrent users supported with zero failures
+- **Session Management**: User session length and stability
 
-### Cassandra (Port 9042)
-- **chat-service**: Messages, GroupMessages (immutable, time-series)
+#### Key Improvements
+- **Latency Optimization**: Maintained sub-millisecond average response times
+- **Connection Stability**: Consistent handshake performance across load phases
+- **Zero Failures**: 100% success rate across all test scenarios
+- **Scalability**: Successfully handles 800+ concurrent users in stress tests
 
-### Redis (Port 6379)
-- **Presence**: Online/offline status (key-value)
-- **Cache**: User data, session info
-- **Pub/Sub**: Message fan-out
-- **Streams**: Chat message distribution
+## 🛡 Security Features
 
-### RabbitMQ (Port 5672)
-- **emailQueue**: Friend request email notifications
-- **offlineQueue**: Offline message delivery
-- **imageResizeQueue**: Image processing
+- JWT-based authentication
+- Password hashing with bcrypt
+- Input validation and sanitization
+- CORS protection
+- Rate limiting capabilities
+- Secure WebSocket connections
 
-## 🔄 Service Communication Patterns
+## 🤝 Contributing
 
-### HTTP (Synchronous)
-- Client → Gateway (all requests start here)
-- Gateway → Auth-service (JWT verification)
-- Gateway → Chat/Presence/Notification services (routing)
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-### RabbitMQ (Asynchronous)
-- Chat-service publishes to `emailQueue` → Notification-service emailWorker consumes
-- Notification-service publishes to `offlineQueue` → Offline message worker consumes
-- Chat-service publishes to `imageResizeQueue` → Image worker consumes
+## 🙏 Acknowledgments
 
-### WebSocket
-- Client → Gateway (ws://localhost:3000/ws/*)
-- Gateway → Chat-service or Presence-service (WebSocket proxy)
+- Built with Node.js and TypeScript
+- Powered by WebSocket technology
+- Database management with Prisma ORM
+- Load testing with Artillery
+- Containerized with Docker
 
-### Redis Streams
-- Chat-service publishes messages to Redis Streams
-- Presence-service subscribes to user status changes
-- Chat-service fans out group messages to recipients
-
-### Events + Database
-- Controllers emit events via `makeEvent()`
-- EventEmitter stores in Events table automatically
-- RabbitMQ integration triggered on event emission
-
-## 🚦 Scaling Considerations
-
-- **Horizontal Scaling**: Each service can run multiple instances behind a load balancer
-- **Load Balancing**: Place nginx/HAProxy in front of gateway
-- **Database Scaling**: 
-  - PostgreSQL: Read replicas, connection pooling
-  - Cassandra: Multi-node cluster (already distributed)
-  - Redis: Sentinel or Cluster mode
-- **Message Queue**: RabbitMQ can be clustered for high availability
-- **Caching**: Layer cache in front of PostgreSQL queries
-
-## 📚 Documentation
-
-- `ARCHITECTURE.md` — System design and service boundaries
-- `FRIEND_REQUEST.md` — Friend request API documentation
-- `MIGRATION_GUIDE.md` — Code patterns and migration steps from monolith
-- `INTEGRATION_SUMMARY.md` — Integration checklist and data flow
-- `CLEANUP.md` — Monolith code cleanup guide
-## 🔄 Next Migration Steps
-
-1. **WebSocket Handlers** — Extract from monolith to services
-2. **Cassandra Operations** — Move to chat-service
-3. **Redis Streams** — Migrate to chat-service
-4. **Offline Queue Logic** — Convert to notification-service workers
-5. **Email Integration** — Replace mock with SendGrid/AWS SES
-6. **Tests** — Add unit and integration tests
-7. **Kubernetes** — Deploy to K8s with Helm charts
-
-## 🛠️ Troubleshooting
-
-### Service won't start
-```bash
-# Check logs
-docker logs chat-auth-service
-
-# Ensure databases are healthy
-docker exec chat-postgres pg_isready
-docker exec chat-redis redis-cli ping
-docker exec chat-rabbitmq rabbitmq-diagnostics ping
-```
-
-### RabbitMQ connection error
-```bash
-# Ensure RabbitMQ is running
-docker logs chat-rabbitmq
-
-# Check connection string
-echo $RABBITMQ_URL
-# Should be: amqp://guest:guest@rabbitmq:5672
-```
-
-### JWT verification fails
-1. Ensure token is from current session
-2. Check JWT_SECRET is consistent across services
-3. Verify token hasn't expired (7 day default)
-
-## 📞 Support
-
-For issues or questions:
-1. Check logs: `docker logs <service-name>`
-2. Review `ARCHITECTURE.md` for design
-3. See `INTEGRATION_SUMMARY.md` for integration overview
-
-## 📄 License
-
-MIT License - See LICENSE file for details
+---

@@ -255,30 +255,10 @@ export async function deliverMessageToLocalUser(
     handleOfflineMessages(messageData);
     return;
   }
-
-  let payload: any = {
+  WsResponse.custom(recipientSocket, {
     type: "MESSAGE",
     from: messageData.from,
+    content: messageData.content,
     chatId: messageData.chatId,
-  };
-
-  try {
-    const parsed = JSON.parse(messageData.content);
-    if (parsed && parsed.type === "file") {
-      payload = {
-        ...payload,
-        fileUrl: parsed.url,
-        fileName: parsed.fileName,
-        mimeType: parsed.mimeType,
-        fileSize: parsed.fileSize,
-        caption: parsed.caption,
-      };
-    } else {
-      payload = { ...payload, content: messageData.content };
-    }
-  } catch {
-    payload = { ...payload, content: messageData.content };
-  }
-
-  WsResponse.custom(recipientSocket, payload);
+  });
 }

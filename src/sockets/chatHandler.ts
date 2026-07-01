@@ -1,3 +1,4 @@
+import { get } from "http";
 import { WebSocket, WebSocketServer } from "ws";
 import { chatConnectionManager } from "../services/connectionService";
 import { prisma } from "../services/prisma";
@@ -14,25 +15,13 @@ import {
   createGroupChatHandler,
   getGroupChatHistoryHandler,
   groupChatHandler,
-  groupFileMessageHandler,
   joinGroupChatHandler,
 } from "./handlers/groupChatHandlers";
 import {
   getOneToOneChatHistoryHandler,
   newOnetoOneChatHandler,
   oneToOneChatHandler,
-  oneToOneFileMessageHandler,
 } from "./handlers/oneToOneChatHandlers";
-import {
-  fetchFriendRequestsHandler,
-  fetchFriendsMetaHandler,
-  respondFriendRequestHandler,
-  sendFriendRequestHandler,
-} from "./handlers/friendRequestHandlers";
-import {
-  searchGroupChatHistoryHandler,
-  searchOneToOneChatHistoryHandler,
-} from "./handlers/searchHandlers";
 
 export async function chatHandler(
   ws: WebSocket,
@@ -40,21 +29,13 @@ export async function chatHandler(
 ): Promise<void> {
   const messageHandler: MessageHandlerMap = {
     INIT_DATA: initChatHandler,
-      NEW_ONE_TO_ONE_CHAT: newOnetoOneChatHandler,
+    NEW_ONE_TO_ONE_CHAT: newOnetoOneChatHandler,
     GET_ONE_TO_ONE_HISTORY: getOneToOneChatHistoryHandler,
     ONE_TO_ONE_CHAT: oneToOneChatHandler,
-    FILE_MESSAGE: oneToOneFileMessageHandler,
     CREATE_GROUP_CHAT: createGroupChatHandler,
     JOIN_GROUP_CHAT: joinGroupChatHandler,
     GET_GROUP_CHAT_HISTORY: getGroupChatHistoryHandler,
     GROUP_CHAT: groupChatHandler,
-    GROUP_FILE_MESSAGE: groupFileMessageHandler,
-    SEND_FRIEND_REQUEST: sendFriendRequestHandler,
-    RESPOND_FRIEND_REQUEST: respondFriendRequestHandler,
-    FETCH_FRIEND_REQUESTS: fetchFriendRequestsHandler,
-    FETCH_FRIENDS_META: fetchFriendsMetaHandler,
-    SEARCH_ONE_TO_ONE_HISTORY: searchOneToOneChatHistoryHandler,
-    SEARCH_GROUP_CHAT_HISTORY: searchGroupChatHistoryHandler,
     OFFLINE_MESSAGES_ACK: offlineMessagesAckHandler,
     DISCONNECT: disconnectHandler,
   };

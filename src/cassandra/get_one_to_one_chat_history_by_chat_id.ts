@@ -27,38 +27,15 @@ export async function getOneToOneChatHistory(chatId: string): Promise<
       prepare: true,
     });
 
-    const messages = result.rows.map((row) => {
-      const rawText = row.message_text || "";
-      let parsedContent: any = rawText;
-
-      try {
-        parsedContent = JSON.parse(rawText);
-      } catch {
-        parsedContent = rawText;
-      }
-
-      const message: any = {
-        messageId: row.message_id?.toString() || "",
-        from: row.message_from || "",
-        to: row.message_to || "",
-        timestamp: getTimestampFromSnowflake(
-          row.message_id?.toString() || ""
-        ).toString(),
-      };
-
-      if (parsedContent && parsedContent.type === "file") {
-        message.content = parsedContent.caption || "";
-        message.fileUrl = parsedContent.url;
-        message.fileName = parsedContent.fileName;
-        message.mimeType = parsedContent.mimeType;
-        message.fileSize = parsedContent.fileSize;
-        message.caption = parsedContent.caption;
-      } else {
-        message.content = String(parsedContent || "");
-      }
-
-      return message;
-    });
+    const messages = result.rows.map((row) => ({
+      messageId: row.message_id?.toString() || "",
+      from: row.message_from || "",
+      to: row.message_to || "",
+      text: row.message_text || "",
+      timestamp: getTimestampFromSnowflake(
+        row.message_id?.toString() || ""
+      ).toString(),
+    }));
 
     console.log(`Retrieved ${messages.length} messages for chat ${chatId}`);
     return messages;

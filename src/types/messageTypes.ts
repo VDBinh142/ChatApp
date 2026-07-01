@@ -61,59 +61,6 @@ export interface FetchFriendsMetaMessage extends BaseMessage {
   type: "FETCH_FRIENDS_META";
 }
 
-export interface SendFriendRequestMessage extends BaseMessage {
-  type: "SEND_FRIEND_REQUEST";
-  from: string;
-  to: string;
-}
-
-export interface RespondFriendRequestMessage extends BaseMessage {
-  type: "RESPOND_FRIEND_REQUEST";
-  from: string;
-  to: string;
-  accept: boolean;
-}
-
-export interface FetchFriendRequestsMessage extends BaseMessage {
-  type: "FETCH_FRIEND_REQUESTS";
-  username: string;
-}
-
-export interface SearchOneToOneChatHistoryMessage extends BaseMessage {
-  type: "SEARCH_ONE_TO_ONE_HISTORY";
-  from: string;
-  to: string;
-  chatId: string;
-  searchTerm: string;
-}
-
-export interface SearchGroupChatHistoryMessage extends BaseMessage {
-  type: "SEARCH_GROUP_CHAT_HISTORY";
-  groupId: string;
-  searchTerm: string;
-}
-
-export interface FileMessage extends BaseMessage {
-  type: "FILE_MESSAGE";
-  from: string;
-  to: string;
-  chatId: string;
-  fileName: string;
-  fileType: string;
-  fileBase64: string;
-  caption?: string;
-}
-
-export interface GroupFileMessage extends BaseMessage {
-  type: "GROUP_FILE_MESSAGE";
-  from: string;
-  groupId: string;
-  fileName: string;
-  fileType: string;
-  fileBase64: string;
-  caption?: string;
-}
-
 // Union type for all incoming messages
 export type IncomingMessage =
   | NewOneToOneChatMessage
@@ -125,11 +72,4 @@ export type IncomingMessage =
   | GetGroupChatHistoryMessage
   | OfflineMessagesAckMessage
   | DisconnectMessage
-  | FetchFriendsMetaMessage
-  | SendFriendRequestMessage
-  | RespondFriendRequestMessage
-  | FetchFriendRequestsMessage
-  | SearchOneToOneChatHistoryMessage
-  | SearchGroupChatHistoryMessage
-  | FileMessage
-  | GroupFileMessage;
+  | FetchFriendsMetaMessage;
