@@ -94,3 +94,4 @@ secure-connect-my-cassandra-db.zip
 /generated/prisma
 .env.local
 .env.production
+/src/generated/prisma

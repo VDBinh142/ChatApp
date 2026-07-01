@@ -4,22 +4,26 @@ let client: Redis | null = null;
 
 export async function connectToIoRedis() {
   if (client) return client;
-  if (
-    !process.env.REDIS_HOST ||
-    !process.env.REDIS_PORT ||
-    !process.env.REDIS_PASSWORD
-  ) {
+  if (!process.env.REDIS_HOST || !process.env.REDIS_PORT) {
     throw new Error(
-      "Redis connection parameters are not set in environment variables"
+      "Redis connection parameters (REDIS_HOST, REDIS_PORT) are not set in environment variables"
     );
   }
-  client = new Redis({
+
+  const opts: any = {
     host: process.env.REDIS_HOST,
     port: parseInt(process.env.REDIS_PORT),
-    username: "default",
-    password: process.env.REDIS_PASSWORD,
-    lazyConnect: true, // Prevent automatic connection
-  });
+    lazyConnect: true,
+  };
+
+  if (process.env.REDIS_PASSWORD && process.env.REDIS_PASSWORD.length > 0) {
+    opts.password = process.env.REDIS_PASSWORD;
+    if (process.env.REDIS_USERNAME && process.env.REDIS_USERNAME.length > 0) {
+      opts.username = process.env.REDIS_USERNAME;
+    }
+  }
+
+  client = new Redis(opts);
 
   // Manually connect and wait for ready state
   await client.connect();

@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages - ChatApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/chat.css" />
+  <style>
+    /* Friend-request inbox panel */
+    .fr-badge {
+      background: var(--danger);
+      color: white;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      margin-left: auto;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    .modal-overlay.hidden { display: none; }
+
+    .modal {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow-pop);
+    }
+
+    .modal h3 {
+      font-family: var(--font-display);
+      margin: 0 0 20px;
+    }
+
+    .fr-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .fr-item:last-child { border-bottom: none; }
+
+    .fr-actions {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .fr-actions button {
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid;
+      cursor: pointer;
+    }
+
+    .btn-accept {
+      background: var(--online);
+      border-color: var(--online);
+      color: #0c1f0c;
+    }
+
+    .btn-decline {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-2);
+    }
+
+    .btn-decline:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .add-friend-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .add-friend-row input {
+      flex: 1;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      color: var(--text-0);
+      font-size: 13px;
+    }
+
+    .empty-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-2);
+      text-align: center;
+      padding: 40px;
+      gap: 10px;
+    }
+
+    .empty-chat svg {
+      opacity: 0.25;
+    }
+
+    .empty-chat h3 {
+      color: var(--text-1);
+      font-family: var(--font-display);
+      margin: 0;
+    }
+
+    .empty-chat p {
+      font-size: 13px;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-shell" id="shell">
+
+    <!-- Rail -->
+    <nav class="rail" id="rail">
+      <div class="brand-mark" style="width:40px;height:40px;border-radius:12px;background:var(--ember);display:flex;align-items:center;justify-content:center;color:#1a1207;font-family:var(--font-display);font-weight:700;font-size:16px;margin-bottom:6px;">C</div>
+      <div class="rail-divider"></div>
+      <button class="rail-icon active" title="Messages" onclick="window.location='/chat.html'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+      </button>
+      <button class="rail-icon" title="Groups" onclick="window.location='/group.html'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      </button>
+      <button class="rail-icon" id="rail-fr-btn" title="Friend requests">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+      </button>
+      <div class="rail-spacer"></div>
+      <button class="rail-icon" title="Settings" onclick="window.location='/settings.html'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      </button>
+      <div class="avatar rail-self-avatar" id="self-avatar" title="Profile" onclick="window.location='/settings.html'"></div>
+    </nav>
+
+    <!-- Sidebar: friends list -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h3>Direct Messages</h3>
+        <div class="search-input">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <input id="friend-search" placeholder="Find a conversation" />
+        </div>
+      </div>
+      <div class="sidebar-section-label">Friends</div>
+      <div class="sidebar-list" id="friends-list">
+        <div class="skeleton" style="height:44px;margin:4px 10px;"></div>
+        <div class="skeleton" style="height:44px;margin:4px 10px;"></div>
+        <div class="skeleton" style="height:44px;margin:4px 10px;"></div>
+      </div>
+    </div>
+
+    <!-- Main chat area -->
+    <div class="chat-main" id="chat-main">
+      <div class="empty-chat" id="empty-chat">
+        <svg width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+        <h3>Select a conversation</h3>
+        <p>Pick a friend from the sidebar to start messaging.</p>
+      </div>
+      <div id="active-chat" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+        <div class="chat-topbar" id="chat-topbar">
+          <div class="avatar" id="topbar-avatar" style="width:34px;height:34px;font-size:11px;"></div>
+          <div class="chat-topbar-info">
+            <div class="chat-topbar-name" id="topbar-name"></div>
+            <div class="chat-topbar-sub" id="topbar-status"></div>
+          </div>
+          <div class="chat-topbar-actions">
+            <button class="topbar-btn" id="remove-friend-btn" title="Remove friend">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" /></svg>
+            </button>
+          </div>
+        </div>
+        <div class="message-list" id="message-list"></div>
+        <div class="upload-preview" id="upload-preview"></div>
+        <div class="chat-input-bar">
+          <div class="chat-input-wrap">
+            <label class="chat-input-btn" title="Attach image" style="cursor:pointer;">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <input type="file" id="file-input" accept="image/*" style="display:none;" />
+            </label>
+            <textarea class="chat-input-field" id="msg-input" rows="1" placeholder="Message..."></textarea>
+            <button class="send-btn" id="send-btn" title="Send">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Friend Requests Modal -->
+  <div class="modal-overlay hidden" id="fr-modal">
+    <div class="modal">
+      <h3>Friend Requests</h3>
+      <div id="fr-incoming-list"></div>
+      <div class="add-friend-row">
+        <input id="add-friend-input" placeholder="Add by username..." />
+        <button class="btn btn-primary" id="add-friend-btn" style="padding:8px 16px;font-size:13px;">Send</button>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:12px;" onclick="document.getElementById('fr-modal').classList.add('hidden')">Close</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, apiGet, apiPost, apiPut, apiDelete, uploadImage, connectChatSocket, toast, initials, formatTime } from "/js/api.js";
+    auth.requireAuth();
+
+    const me = auth.getUsername();
+    let ws = null;
+    let activeChatId = null;
+    let activeFriend = null;
+    let friends = [];
+    let presenceMap = {};
+    let pendingFile = null;
+
+    // Self avatar
+    const selfAvatar = document.getElementById("self-avatar");
+    selfAvatar.textContent = initials(me);
+
+    // ---- WebSocket ----
+    function handleWs(msg) {
+      if (msg.eventType === "FRIEND_REQUEST_RECEIVED") {
+        updateFrBadge();
+        toast(`${msg.from} sent you a friend request`);
+      } else if (msg.eventType === "FRIEND_REQUEST_ACCEPTED") {
+        toast(`${msg.by} accepted your friend request`);
+        loadFriends();
+      } else if (msg.eventType === "FRIEND_REMOVED") {
+        toast(`${msg.by} removed you as a friend`);
+        loadFriends();
+        if (activeFriend === msg.by) closeActiveChat();
+      }
+    }
+
+    // ---- Friends list ----
+    async function loadFriends() {
+      try {
+        const data = await apiGet("/friends");
+        friends = data.friends || [];
+        renderFriendsList(friends);
+        await updateFrBadge();
+      } catch (e) {
+        toast("Could not load friends list", "error");
+      }
+    }
+
+    function renderFriendsList(list) {
+      const container = document.getElementById("friends-list");
+      if (!list.length) {
+        container.innerHTML = `<div class="empty-state" style="padding:24px 14px;">
+          <p>No friends yet — add someone!</p></div>`;
+        return;
+      }
+      container.innerHTML = list.map(f => {
+        const name = f.displayName || f.username;
+        const online = presenceMap[f.username] === "ONLINE";
+        return `<div class="sidebar-item" data-username="${f.username}" onclick="openChat('${f.username}')">
+          <div class="avatar" style="width:34px;height:34px;font-size:11px;">
+            ${f.avatarImage ? `<img src="${f.avatarImage.basePath}_small.webp" />` : initials(name)}
+            <span class="status-dot ${online ? 'online' : 'offline'}"></span>
+          </div>
+          <div class="sidebar-item-meta">
+            <div class="sidebar-item-name">${escHtml(name)}</div>
+            <div class="sidebar-item-sub">${online ? 'Online' : 'Offline'}</div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    function updatePresenceDots() {
+      document.querySelectorAll(".sidebar-item[data-username]").forEach(el => {
+        const username = el.dataset.username;
+        const dot = el.querySelector(".status-dot");
+        if (dot) {
+          const online = presenceMap[username] === "ONLINE";
+          dot.className = `status-dot ${online ? "online" : "offline"}`;
+        }
+      });
+    }
+
+    async function updateFrBadge() {
+      try {
+        const data = await apiGet("/friends/requests");
+        const count = (data.incoming || []).length;
+        const btn = document.getElementById("rail-fr-btn");
+        const existing = btn.querySelector(".fr-badge");
+        if (existing) existing.remove();
+        if (count > 0) {
+          const badge = document.createElement("span");
+          badge.className = "fr-badge";
+          badge.textContent = count;
+          badge.style.cssText = "position:absolute;top:-3px;right:-3px;font-size:9px;padding:1px 4px;";
+          btn.appendChild(badge);
+        }
+      } catch {}
+    }
+
+    // ---- Open chat ----
+    window.openChat = async function(username) {
+      activeFriend = username;
+      const friend = friends.find(f => f.username === username) || { username };
+      const name = friend.displayName || friend.username;
+
+      document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+      document.querySelector(`.sidebar-item[data-username="${username}"]`)?.classList.add("active");
+
+      document.getElementById("empty-chat").style.display = "none";
+      const activeChat = document.getElementById("active-chat");
+      activeChat.style.display = "flex";
+
+      // Topbar
+      const avatar = document.getElementById("topbar-avatar");
+      avatar.innerHTML = friend.avatarImage
+        ? `<img src="${friend.avatarImage.basePath}_small.webp" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+        : initials(name);
+      document.getElementById("topbar-name").textContent = name;
+      updateTopbarStatus();
+
+      // Remove-friend button
+      document.getElementById("remove-friend-btn").onclick = () => removeFriend(username);
+
+      // Load messages via WS
+      document.getElementById("message-list").innerHTML = `<div class="skeleton" style="height:40px;margin:8px 20px;"></div><div class="skeleton" style="height:40px;margin:8px 20px;width:60%;"></div>`;
+      activeChatId = friend.chatId || chatIdFor(username);
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: "GET_ONE_TO_ONE_HISTORY",
+          from: me,
+          to: username,
+          chatId: activeChatId,
+        }));
+      }
+    };
+
+    function updateTopbarStatus() {
+      const online = presenceMap[activeFriend] === "ONLINE";
+      document.getElementById("topbar-status").textContent = online ? "● Online" : "Offline";
+      document.getElementById("topbar-status").style.color = online ? "var(--online)" : "var(--text-2)";
+    }
+
+    function chatIdFor(username) {
+      return [me, username].sort().join("-");
+    }
+
+    function closeActiveChat() {
+      activeFriend = null;
+      activeChatId = null;
+      document.getElementById("empty-chat").style.display = "flex";
+      document.getElementById("active-chat").style.display = "none";
+      document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+    }
+
+    async function removeFriend(username) {
+      if (!confirm(`Remove ${username} as a friend?`)) return;
+      try {
+        await apiDelete(`/friends/${username}`);
+        toast("Friend removed");
+        closeActiveChat();
+        loadFriends();
+      } catch (e) {
+        toast(e.message || "Could not remove friend", "error");
+      }
+    }
+
+    // ---- Messages ----
+    function appendMessage(msg) {
+      const list = document.getElementById("message-list");
+      const isSelf = msg.from === me;
+      const div = document.createElement("div");
+      div.className = `msg-row${isSelf ? " is-self" : ""} has-header`;
+      div.innerHTML = `
+        <div class="avatar" style="width:36px;height:36px;font-size:11px;">${initials(msg.from)}</div>
+        <div class="msg-bubble-wrap">
+          <div class="msg-header">
+            <span class="msg-sender${isSelf ? " is-self" : ""}">${escHtml(msg.from)}</span>
+            <span class="msg-time">${formatTime(msg.timestamp)}</span>
+          </div>
+          ${msg.content ? `<div class="msg-bubble">${escHtml(msg.content)}</div>` : ""}
+          ${msg.fileUrl ? `<img class="msg-img" src="${msg.fileUrl}" alt="image" />` : ""}
+        </div>`;
+      list.appendChild(div);
+      list.scrollTop = list.scrollHeight;
+    }
+
+    function renderHistory(messages) {
+      const list = document.getElementById("message-list");
+      list.innerHTML = "";
+      if (!messages?.length) {
+        list.innerHTML = `<div class="empty-state"><p>No messages yet. Say hi!</p></div>`;
+        return;
+      }
+      messages.forEach(m => appendMessage(m));
+    }
+
+    // ---- File upload ----
+    document.getElementById("file-input").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      pendingFile = file;
+      const preview = document.getElementById("upload-preview");
+      const url = URL.createObjectURL(file);
+      preview.innerHTML = `<div class="upload-thumb-wrap">
+        <img class="upload-thumb" src="${url}" />
+        <button class="remove-thumb" onclick="clearFile()">×</button>
+      </div>`;
+    });
+
+    window.clearFile = function() {
+      pendingFile = null;
+      document.getElementById("upload-preview").innerHTML = "";
+      document.getElementById("file-input").value = "";
+    };
+
+    // ---- Send message ----
+    async function sendMessage() {
+      const input = document.getElementById("msg-input");
+      const text = input.value.trim();
+      if (!text && !pendingFile) return;
+      if (!activeFriend || ws?.readyState !== WebSocket.OPEN) return;
+
+      let fileUrl = null;
+      if (pendingFile) {
+        try {
+          const result = await uploadImage(pendingFile);
+          fileUrl = result.image.medium;
+          clearFile();
+        } catch (e) {
+          toast("Image upload failed", "error");
+          return;
+        }
+      }
+
+      ws.send(JSON.stringify({
+        type: "ONE_TO_ONE_CHAT",
+        from: me,
+        to: activeFriend,
+        chatId: activeChatId || chatIdFor(activeFriend),
+        content: text,
+        fileUrl,
+      }));
+
+      input.value = "";
+      input.style.height = "auto";
+    }
+
+    document.getElementById("send-btn").addEventListener("click", sendMessage);
+    document.getElementById("msg-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Auto-resize textarea
+    document.getElementById("msg-input").addEventListener("input", (e) => {
+      e.target.style.height = "auto";
+      e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+    });
+
+    // ---- WS message routing for history ----
+
+    function handleFriendEvent(msg) {
+      switch (msg.eventType) {
+        case "FRIEND_REQUEST_RECEIVED":
+          updateFrBadge();
+          toast(`${msg.from} sent you a friend request`);
+          break;
+        case "FRIEND_REQUEST_ACCEPTED":
+          toast(`${msg.by} accepted your friend request`);
+          loadFriends();
+          updateFrBadge();
+          break;
+        case "FRIEND_REQUEST_DECLINED":
+          toast("Your friend request was declined");
+          updateFrBadge();
+          break;
+        case "FRIEND_REMOVED":
+          toast(`${msg.by} removed you as a friend`);
+          loadFriends();
+          if (activeFriend === msg.by) closeActiveChat();
+          break;
+        default:
+          console.log("Unknown friend event:", msg);
+      }
+    }
+
+    // ---- Friend search filter ----
+    document.getElementById("friend-search").addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase();
+      renderFriendsList(friends.filter(f =>
+        (f.displayName || f.username).toLowerCase().includes(q)
+      ));
+    });
+
+    // ---- Friend requests modal ----
+    async function refreshFriendRequests() {
+      const data = await apiGet("/friends/requests");
+      return data.incoming || data.incomingRequests || [];
+    }
+
+    function renderFriendRequests(incoming) {
+      const list = document.getElementById("fr-incoming-list");
+      if (!incoming.length) {
+        list.innerHTML = `<p style="color:var(--text-2);font-size:13px;">No pending requests.</p>`;
+        return;
+      }
+      list.innerHTML = incoming.map(r => `
+        <div class="fr-item" data-request-id="${r.id}">
+          <div class="avatar" style="width:34px;height:34px;font-size:11px;">${initials(r.senderId)}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;">${escHtml(r.senderId)}</div>
+            ${r.content ? `<div style="font-size:12px;color:var(--text-2);">"${escHtml(r.content)}"</div>` : ""}
+          </div>
+          <div class="fr-actions">
+            <button class="btn btn-accept" data-action="accept">Accept</button>
+            <button class="btn btn-decline" data-action="decline">Decline</button>
+          </div>
+        </div>`).join("");
+    }
+
+    document.getElementById("rail-fr-btn").addEventListener("click", async () => {
+      document.getElementById("fr-modal").classList.remove("hidden");
+      try {
+        const incoming = await refreshFriendRequests();
+        renderFriendRequests(incoming);
+      } catch (e) {
+        toast(e.message || "Could not load friend requests", "error");
+      }
+    });
+
+    document.getElementById("fr-incoming-list").addEventListener("click", async (e) => {
+      const button = e.target.closest("button[data-action]");
+      if (!button) return;
+      const item = button.closest(".fr-item");
+      if (!item) return;
+      const id = item.dataset.requestId;
+      const accept = button.dataset.action === "accept";
+
+      try {
+        await apiPut(`/friends/requests/${id}`, { accept });
+        toast(accept ? "Friend request accepted!" : "Request declined");
+        document.getElementById("fr-modal").classList.add("hidden");
+        if (accept) loadFriends();
+        updateFrBadge();
+      } catch (e) {
+        toast(e.message || "Could not respond to request", "error");
+      }
+    });
+
+    document.getElementById("add-friend-btn").addEventListener("click", async () => {
+      const username = document.getElementById("add-friend-input").value.trim();
+      if (!username) return;
+      try {
+        await apiPost("/friends/requests", { receiverId: username });
+        toast(`Friend request sent to ${username}`);
+        document.getElementById("add-friend-input").value = "";
+        updateFrBadge();
+      } catch (e) {
+        toast(e.message || "Could not send request", "error");
+      }
+    });
+
+    // Close modal on backdrop click
+    document.getElementById("fr-modal").addEventListener("click", (e) => {
+      if (e.target === document.getElementById("fr-modal"))
+        document.getElementById("fr-modal").classList.add("hidden");
+    });
+
+    // Handle WS messages involving history
+    function handleWs(msg) {
+      switch (msg.type) {
+        case "STATUS_CHANGE":
+          presenceMap[msg.username] = msg.status;
+          updatePresenceDots();
+          if (activeFriend === msg.username) updateTopbarStatus();
+          break;
+        case "ONE_TO_ONE_CHAT_HISTORY":
+          activeChatId = msg.chatId;
+          renderHistory(msg.messages);
+          break;
+        case "MESSAGE":
+          if (msg.chatId === activeChatId) appendMessage(msg);
+          break;
+        case "FRIEND_EVENT":
+          handleFriendEvent(msg);
+          break;
+      }
+    }
+
+    function escHtml(s) {
+      return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    // ---- Boot ----
+    function connectWS() {
+      ws = connectChatSocket();
+      ws.addEventListener("message", e => handleWs(JSON.parse(e.data)));
+      ws.addEventListener("close", () => setTimeout(connectWS, 3000));
+    }
+
+    loadFriends();
+    connectWS();
+  </script>
+</body>
+</html>

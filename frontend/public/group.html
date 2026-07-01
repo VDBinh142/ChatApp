@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Groups - ChatApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/chat.css" />
+  <style>
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:200; }
+    .modal-overlay.hidden { display:none; }
+    .modal { background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;width:100%;max-width:420px;box-shadow:var(--shadow-pop); }
+    .modal h3 { font-family:var(--font-display);margin:0 0 20px; }
+
+    .tag-input-wrap { display:flex;flex-wrap:wrap;gap:6px;background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;min-height:42px;cursor:text; }
+    .tag-chip { background:var(--ember-dim);color:var(--text-0);border-radius:4px;padding:2px 8px;font-size:12px;display:flex;align-items:center;gap:5px; }
+    .tag-chip button { background:none;border:none;color:inherit;cursor:pointer;padding:0;font-size:14px;line-height:1; }
+    .tag-input { background:none;border:none;outline:none;color:var(--text-0);font-size:13px;min-width:100px;flex:1; }
+
+    .icon-upload-area { border:1.5px dashed var(--border);border-radius:var(--radius-md);padding:20px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:16px; }
+    .icon-upload-area:hover { border-color:var(--ember-dim); }
+    .icon-upload-area img { width:64px;height:64px;border-radius:50%;object-fit:cover;margin-bottom:8px; }
+    .icon-upload-area p { font-size:12px;color:var(--text-2);margin:0; }
+
+    .empty-chat { flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-2);text-align:center;padding:40px;gap:10px; }
+    .empty-chat svg { opacity:.25; }
+    .empty-chat h3 { color:var(--text-1);font-family:var(--font-display);margin:0; }
+    .empty-chat p { font-size:13px;margin:0; }
+  </style>
+</head>
+<body>
+  <div class="chat-shell">
+
+    <!-- Rail -->
+    <nav class="rail">
+      <div class="brand-mark" style="width:40px;height:40px;border-radius:12px;background:var(--ember);display:flex;align-items:center;justify-content:center;color:#1a1207;font-family:var(--font-display);font-weight:700;font-size:16px;margin-bottom:6px;">C</div>
+      <div class="rail-divider"></div>
+      <button class="rail-icon" title="Messages" onclick="window.location='/chat.html'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+      </button>
+      <button class="rail-icon active" title="Groups" onclick="window.location='/group.html'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      </button>
+      <div class="rail-spacer"></div>
+      <button class="rail-icon" title="Settings" onclick="window.location='/settings.html'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      </button>
+      <div class="avatar" id="self-avatar" style="width:40px;height:40px;font-size:13px;cursor:pointer;" onclick="window.location='/settings.html'"></div>
+    </nav>
+
+    <!-- Sidebar: groups list -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h3>Groups</h3>
+        <div class="search-input">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <input id="group-search" placeholder="Find a group" />
+        </div>
+      </div>
+      <div class="sidebar-section-label">
+        Your Groups
+        <button title="Create group" onclick="document.getElementById('create-modal').classList.remove('hidden')">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+        </button>
+      </div>
+      <div class="sidebar-list" id="groups-list">
+        <div class="skeleton" style="height:44px;margin:4px 10px;"></div>
+        <div class="skeleton" style="height:44px;margin:4px 10px;"></div>
+      </div>
+    </div>
+
+    <!-- Main panel -->
+    <div class="chat-main" id="chat-main" style="display:grid;grid-template-columns:1fr 220px;">
+      <div class="empty-chat" id="empty-chat" style="grid-column:1/3;">
+        <svg width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        <h3>Select a group</h3>
+        <p>Or create a new one with the + button.</p>
+      </div>
+
+      <div id="active-group" style="display:none;flex-direction:column;overflow:hidden;">
+        <div class="chat-topbar" id="group-topbar">
+          <div class="avatar" id="group-topbar-avatar" style="width:34px;height:34px;font-size:11px;border-radius:10px;"></div>
+          <div class="chat-topbar-info">
+            <div class="chat-topbar-name" id="group-topbar-name"></div>
+            <div class="chat-topbar-sub" id="group-topbar-sub"></div>
+          </div>
+          <div class="chat-topbar-actions">
+            <label class="topbar-btn" title="Change group icon" style="cursor:pointer;">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <input type="file" id="icon-file-input" accept="image/*" style="display:none;" />
+            </label>
+          </div>
+        </div>
+        <div class="message-list" id="group-message-list"></div>
+        <div class="upload-preview" id="group-upload-preview"></div>
+        <div class="chat-input-bar">
+          <div class="chat-input-wrap">
+            <label class="chat-input-btn" style="cursor:pointer;" title="Attach image">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <input type="file" id="group-file-input" accept="image/*" style="display:none;" />
+            </label>
+            <textarea class="chat-input-field" id="group-msg-input" rows="1" placeholder="Message group..."></textarea>
+            <button class="send-btn" id="group-send-btn">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Member list -->
+      <div class="right-panel" id="member-panel" style="display:none;">
+        <div class="right-panel-section">
+          <div class="right-panel-label">Members</div>
+          <div id="member-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Group Modal -->
+  <div class="modal-overlay hidden" id="create-modal">
+    <div class="modal">
+      <h3>Create a Group</h3>
+      <div class="icon-upload-area" id="icon-upload-area">
+        <p>Click to set a group icon (optional)</p>
+        <input type="file" id="icon-upload-input" accept="image/*" style="display:none;" />
+      </div>
+      <div class="field">
+        <label>Group Name</label>
+        <input id="new-group-name" placeholder="e.g. Study Squad" />
+      </div>
+      <div class="field">
+        <label>Add Members (by username)</label>
+        <div class="tag-input-wrap" id="member-tag-wrap">
+          <input class="tag-input" id="member-tag-input" placeholder="Type username, press Enter" />
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('create-modal').classList.add('hidden')">Cancel</button>
+        <button class="btn btn-primary" style="flex:1;" id="create-group-btn">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, apiGet, apiPut, uploadImage, connectChatSocket, toast, initials, formatTime } from "/js/api.js";
+    auth.requireAuth();
+
+    const me = auth.getUsername();
+    let ws = null;
+    let groups = [];
+    let activeGroup = null;
+    let presenceMap = {};
+    let pendingFile = null;
+    let iconImageId = null;
+    let memberTags = [];
+
+    document.getElementById("self-avatar").textContent = initials(me);
+
+    // ---- WebSocket ----
+    function connectWS() {
+      ws = connectChatSocket();
+      ws.addEventListener("open", () => {
+        loadGroups();
+      });
+      ws.addEventListener("message", e => handleWs(JSON.parse(e.data)));
+      ws.addEventListener("close", () => setTimeout(connectWS, 3000));
+    }
+
+    function handleWs(msg) {
+      switch (msg.type) {
+        case "STATUS_CHANGE":
+          presenceMap[msg.username] = msg.status;
+          updateMemberPresence();
+          break;
+        case "GROUP_CHAT_HISTORY":
+          renderGroupHistory(msg.messages, msg.members);
+          break;
+        case "GROUP_MESSAGE":
+        case "GROUP_CHAT":
+          if (activeGroup && msg.groupId === activeGroup.groupId) appendGroupMessage(msg);
+          break;
+        case "GROUP_CHAT_CREATED":
+          if (msg.group) {
+            groups.push(msg.group);
+            renderGroupsList(groups);
+            toast(`Group "${msg.group.groupName}" created successfully`);
+            openGroup(msg.group.groupId);
+          } else {
+            loadGroups();
+          }
+          break;
+      }
+    }
+
+    // ---- Groups list ----
+    async function loadGroups() {
+      try {
+        ws.send(JSON.stringify({ type: "INIT_DATA" }));
+        ws.addEventListener("message", function onInit(e) {
+          const msg = JSON.parse(e.data);
+          if (msg.type === "INIT_DATA") {
+            groups = msg.groups || [];
+            renderGroupsList(groups);
+            ws.removeEventListener("message", onInit);
+          }
+        }, { once: true });
+      } catch(e) {
+        toast("Could not load groups", "error");
+      }
+    }
+
+    function renderGroupsList(list) {
+      const container = document.getElementById("groups-list");
+      if (!list.length) {
+        container.innerHTML = `<div class="empty-state" style="padding:20px 14px;"><p>No groups yet.</p></div>`;
+        return;
+      }
+      container.innerHTML = list.map(g => `
+        <div class="sidebar-item" data-gid="${g.groupId}" onclick="openGroup('${g.groupId}')">
+          <div class="avatar" style="width:34px;height:34px;font-size:11px;border-radius:10px;">
+            ${g.iconImage ? `<img src="${g.iconImage.basePath}_small.webp" style="border-radius:10px;" />` : escHtml(g.groupName.slice(0,2).toUpperCase())}
+          </div>
+          <div class="sidebar-item-meta">
+            <div class="sidebar-item-name">${escHtml(g.groupName)}</div>
+            <div class="sidebar-item-sub">${g.memberCount || ""} members</div>
+          </div>
+        </div>`).join("");
+
+      document.getElementById("group-search").addEventListener("input", e => {
+        const q = e.target.value.toLowerCase();
+        renderGroupsList(groups.filter(g => g.groupName.toLowerCase().includes(q)));
+      });
+    }
+
+    // ---- Open group ----
+    window.openGroup = function(groupId) {
+      activeGroup = groups.find(g => g.groupId === groupId);
+      if (!activeGroup) return;
+
+      document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+      document.querySelector(`.sidebar-item[data-gid="${groupId}"]`)?.classList.add("active");
+
+      document.getElementById("empty-chat").style.display = "none";
+      const ag = document.getElementById("active-group");
+      ag.style.display = "flex";
+      document.getElementById("member-panel").style.display = "flex";
+
+      const av = document.getElementById("group-topbar-avatar");
+      av.innerHTML = activeGroup.iconImage
+        ? `<img src="${activeGroup.iconImage.basePath}_small.webp" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />`
+        : activeGroup.groupName.slice(0,2).toUpperCase();
+      document.getElementById("group-topbar-name").textContent = activeGroup.groupName;
+      document.getElementById("group-topbar-sub").textContent = `Created by ${activeGroup.createdBy}`;
+
+      document.getElementById("group-message-list").innerHTML =
+        `<div class="skeleton" style="height:40px;margin:8px 20px;"></div><div class="skeleton" style="height:40px;margin:8px 20px;width:60%;"></div>`;
+
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "GET_GROUP_CHAT_HISTORY", groupId }));
+        ws.send(JSON.stringify({ type: "JOIN_GROUP_CHAT", groupId, username: me }));
+      }
+    };
+
+    // ---- History and messages ----
+    function renderGroupHistory(messages, members) {
+      const list = document.getElementById("group-message-list");
+      list.innerHTML = "";
+      if (!messages?.length) {
+        list.innerHTML = `<div class="empty-state"><p>No messages yet. Say something!</p></div>`;
+      } else {
+        messages.forEach(m => appendGroupMessage(m));
+      }
+      renderMemberList(members || []);
+    }
+
+    function appendGroupMessage(msg) {
+      const list = document.getElementById("group-message-list");
+      const isSelf = msg.from === me;
+      const div = document.createElement("div");
+      div.className = `msg-row${isSelf ? " is-self" : ""} has-header`;
+      div.innerHTML = `
+        <div class="avatar" style="width:36px;height:36px;font-size:11px;">${initials(msg.from)}</div>
+        <div class="msg-bubble-wrap">
+          <div class="msg-header">
+            <span class="msg-sender${isSelf ? " is-self" : ""}">${escHtml(msg.from)}</span>
+            <span class="msg-time">${formatTime(msg.timestamp)}</span>
+          </div>
+          ${msg.content ? `<div class="msg-bubble">${escHtml(msg.content)}</div>` : ""}
+          ${msg.fileUrl ? `<img class="msg-img" src="${msg.fileUrl}" alt="image" />` : ""}
+        </div>`;
+      list.appendChild(div);
+      list.scrollTop = list.scrollHeight;
+    }
+
+    function renderMemberList(members) {
+      document.getElementById("member-list").innerHTML = members.map(m => `
+        <div class="member-row">
+          <div class="avatar" style="width:28px;height:28px;font-size:9px;">
+            ${initials(m)}
+            <span class="status-dot ${presenceMap[m] === 'ONLINE' ? 'online' : 'offline'}"></span>
+          </div>
+          <span class="member-row-name">${escHtml(m)}</span>
+        </div>`).join("");
+    }
+
+    function updateMemberPresence() {
+      document.querySelectorAll(".member-row").forEach(row => {
+        const name = row.querySelector(".member-row-name")?.textContent?.trim();
+        const dot = row.querySelector(".status-dot");
+        if (dot && name) dot.className = `status-dot ${presenceMap[name] === "ONLINE" ? "online" : "offline"}`;
+      });
+    }
+
+    // ---- Send message ----
+    async function sendGroupMessage() {
+      const input = document.getElementById("group-msg-input");
+      const text = input.value.trim();
+      if (!text && !pendingFile) return;
+      if (!activeGroup || ws?.readyState !== WebSocket.OPEN) return;
+
+      let fileUrl = null;
+      if (pendingFile) {
+        try {
+          const result = await uploadImage(pendingFile);
+          fileUrl = result.image.medium;
+          clearGroupFile();
+        } catch {
+          toast("Image upload failed", "error");
+          return;
+        }
+      }
+
+      ws.send(JSON.stringify({ type: "GROUP_CHAT", from: me, to: activeGroup.groupId, content: text, fileUrl }));
+      input.value = "";
+      input.style.height = "auto";
+    }
+
+    document.getElementById("group-send-btn").addEventListener("click", sendGroupMessage);
+    document.getElementById("group-msg-input").addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendGroupMessage(); }
+    });
+    document.getElementById("group-msg-input").addEventListener("input", e => {
+      e.target.style.height = "auto";
+      e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+    });
+
+    // ---- File handling ----
+    document.getElementById("group-file-input").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      pendingFile = file;
+      const preview = document.getElementById("group-upload-preview");
+      preview.innerHTML = `<div class="upload-thumb-wrap">
+        <img class="upload-thumb" src="${URL.createObjectURL(file)}" />
+        <button class="remove-thumb" onclick="clearGroupFile()">×</button>
+      </div>`;
+    });
+
+    window.clearGroupFile = function() {
+      pendingFile = null;
+      document.getElementById("group-upload-preview").innerHTML = "";
+      document.getElementById("group-file-input").value = "";
+    };
+
+    // ---- Group icon change ----
+    document.getElementById("icon-file-input").addEventListener("change", async e => {
+      if (!activeGroup) return;
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const result = await uploadImage(file);
+        await apiPut(`/groups/${activeGroup.groupId}/icon`, { imageId: result.image.id });
+        toast("Group icon updated");
+        const av = document.getElementById("group-topbar-avatar");
+        av.innerHTML = `<img src="${result.image.medium}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />`;
+      } catch (err) {
+        toast(err.message || "Could not update icon", "error");
+      }
+    });
+
+    // ---- Create group modal ----
+    const iconUploadArea = document.getElementById("icon-upload-area");
+    document.getElementById("icon-upload-input").addEventListener("change", async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const result = await uploadImage(file);
+        iconImageId = result.image.id;
+        iconUploadArea.innerHTML = `<img src="${result.image.medium}" /><p>Icon ready</p>`;
+      } catch {
+        toast("Could not upload icon", "error");
+      }
+    });
+
+    iconUploadArea.addEventListener("click", () => document.getElementById("icon-upload-input").click());
+
+    // Member tags
+    const tagInput = document.getElementById("member-tag-input");
+    tagInput.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === ",") {
+        e.preventDefault();
+        const val = tagInput.value.trim();
+        if (val && !memberTags.includes(val)) {
+          memberTags.push(val);
+          renderTags();
+        }
+        tagInput.value = "";
+      }
+    });
+
+    function renderTags() {
+      const wrap = document.getElementById("member-tag-wrap");
+      wrap.querySelectorAll(".tag-chip").forEach(el => el.remove());
+      memberTags.forEach(tag => {
+        const chip = document.createElement("div");
+        chip.className = "tag-chip";
+        chip.innerHTML = `${escHtml(tag)}<button onclick="removeTag('${tag}')">×</button>`;
+        wrap.insertBefore(chip, tagInput);
+      });
+    }
+
+    window.removeTag = function(tag) {
+      memberTags = memberTags.filter(t => t !== tag);
+      renderTags();
+    };
+
+    document.getElementById("create-group-btn").addEventListener("click", () => {
+      const name = document.getElementById("new-group-name").value.trim();
+      if (!name) { toast("Group name is required", "error"); return; }
+      if (!memberTags.length) { toast("Add at least one member", "error"); return; }
+      if (ws?.readyState !== WebSocket.OPEN) { toast("Not connected", "error"); return; }
+
+      ws.send(JSON.stringify({
+        type: "CREATE_GROUP_CHAT",
+        groupName: name,
+        by: me,
+        members: Array.from(new Set([me, ...memberTags])),
+        iconImageId: iconImageId || undefined,
+      }));
+
+      document.getElementById("create-modal").classList.add("hidden");
+      document.getElementById("new-group-name").value = "";
+      memberTags = [];
+      iconImageId = null;
+      renderTags();
+      iconUploadArea.innerHTML = `<p>Click to set a group icon (optional)</p>`;
+      toast("Group created!");
+    });
+
+    function escHtml(s) {
+      return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    // ---- Boot ----
+    connectWS();
+  </script>
+</body>
+</html>

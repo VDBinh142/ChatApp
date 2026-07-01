@@ -164,7 +164,7 @@ async function forwardMessageAndWaitForAck(
       password: process.env.REDIS_PASSWORD,
       socket: {
         host: process.env.REDIS_HOST,
-        port: parseInt(process.env.REDIS_PORT || "6379"),
+        port: parseInt(process.env.REDIS_PORT || "6380"),
       },
     });
 
@@ -255,10 +255,30 @@ export async function deliverMessageToLocalUser(
     handleOfflineMessages(messageData);
     return;
   }
-  WsResponse.custom(recipientSocket, {
+
+  let payload: any = {
     type: "MESSAGE",
     from: messageData.from,
-    content: messageData.content,
     chatId: messageData.chatId,
-  });
+  };
+
+  try {
+    const parsed = JSON.parse(messageData.content);
+    if (parsed && parsed.type === "file") {
+      payload = {
+        ...payload,
+        fileUrl: parsed.url,
+        fileName: parsed.fileName,
+        mimeType: parsed.mimeType,
+        fileSize: parsed.fileSize,
+        caption: parsed.caption,
+      };
+    } else {
+      payload = { ...payload, content: messageData.content };
+    }
+  } catch {
+    payload = { ...payload, content: messageData.content };
+  }
+
+  WsResponse.custom(recipientSocket, payload);
 }

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in - ChatApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/base.css" />
+  <style>
+    .auth-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+    }
+
+    .auth-art {
+      position: relative;
+      background: linear-gradient(160deg, #1d1a14 0%, #16140f 60%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px;
+      overflow: hidden;
+      border-right: 1px solid var(--border-soft);
+    }
+
+    .auth-art::before {
+      content: "";
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(232, 130, 60, 0.16), transparent 65%);
+      top: -220px;
+      right: -220px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 18px;
+      z-index: 1;
+    }
+
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: var(--ember);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1a1207;
+      font-weight: 700;
+    }
+
+    .auth-art-quote {
+      z-index: 1;
+      max-width: 420px;
+    }
+
+    .auth-art-quote .tag {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ember-bright);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    .auth-art-quote h1 {
+      font-family: var(--font-display);
+      font-size: 34px;
+      line-height: 1.2;
+      margin: 0 0 12px;
+      color: var(--text-0);
+    }
+
+    .auth-art-quote p {
+      color: var(--text-1);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .live-strip {
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-2);
+    }
+
+    .live-strip .status-dot.online {
+      position: static;
+      width: 8px;
+      height: 8px;
+      border: none;
+    }
+
+    .auth-form-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .auth-card h2 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      margin: 0 0 6px;
+    }
+
+    .auth-card .sub {
+      color: var(--text-2);
+      font-size: 13px;
+      margin: 0 0 28px;
+    }
+
+    .mode-toggle {
+      display: flex;
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      margin-bottom: 28px;
+    }
+
+    .mode-toggle button {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 9px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: all 0.15s ease;
+    }
+
+    .mode-toggle button.active {
+      background: var(--bg-3);
+      color: var(--text-0);
+    }
+
+    form.hidden {
+      display: none;
+    }
+
+    .form-error {
+      background: rgba(226, 92, 92, 0.1);
+      border: 1px solid rgba(226, 92, 92, 0.3);
+      color: var(--danger);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .form-error.visible {
+      display: block;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--text-2);
+      margin-top: 18px;
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      .auth-shell {
+        grid-template-columns: 1fr;
+      }
+      .auth-art {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-shell">
+    <div class="auth-art">
+      <div class="brand">
+        <span class="brand-mark">C</span>
+        <span>ChatApp</span>
+      </div>
+      <div class="auth-art-quote">
+        <span class="tag">Real-time &middot; end to end built</span>
+        <h1>Conversations that keep up with you.</h1>
+        <p>One-to-one and group messaging, live presence, and offline delivery &mdash; all running on a stack built to hold up under real load.</p>
+      </div>
+      <div class="live-strip">
+        <span class="status-dot online"></span>
+        <span>Presence tracking active</span>
+      </div>
+    </div>
+
+    <div class="auth-form-panel">
+      <div class="auth-card">
+        <div class="mode-toggle">
+          <button type="button" id="tab-login" class="active">Sign in</button>
+          <button type="button" id="tab-register">Create account</button>
+        </div>
+
+        <div class="form-error" id="form-error"></div>
+
+        <form id="login-form">
+          <h2>Welcome back</h2>
+          <p class="sub">Sign in to pick up where you left off.</p>
+          <div class="field">
+            <label for="login-username">Username</label>
+            <input id="login-username" name="username" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="login-submit">Sign in</button>
+        </form>
+
+        <form id="register-form" class="hidden">
+          <h2>Create your account</h2>
+          <p class="sub">Takes about ten seconds.</p>
+          <div class="field">
+            <label for="register-username">Username</label>
+            <input id="register-username" name="username" autocomplete="username" minlength="3" required />
+          </div>
+          <div class="field">
+            <label for="register-email">Email <span style="text-transform:none;font-weight:400;">(optional, for notifications)</span></label>
+            <input id="register-email" name="email" type="email" autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="register-password">Password</label>
+            <input id="register-password" name="password" type="password" autocomplete="new-password" minlength="8" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="register-submit">Create account</button>
+        </form>
+
+        <p class="hint">By continuing you agree this is a personal project and not production software yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { apiPost, auth, toast } from "/js/api.js";
+
+    if (auth.getToken()) {
+      window.location.href = "/chat.html";
+    }
+
+    const tabLogin = document.getElementById("tab-login");
+    const tabRegister = document.getElementById("tab-register");
+    const loginForm = document.getElementById("login-form");
+    const registerForm = document.getElementById("register-form");
+    const formError = document.getElementById("form-error");
+
+    function showError(message) {
+      formError.textContent = message;
+      formError.classList.add("visible");
+    }
+
+    function clearError() {
+      formError.classList.remove("visible");
+    }
+
+    function switchTab(mode) {
+      clearError();
+      const isLogin = mode === "login";
+      tabLogin.classList.toggle("active", isLogin);
+      tabRegister.classList.toggle("active", !isLogin);
+      loginForm.classList.toggle("hidden", !isLogin);
+      registerForm.classList.toggle("hidden", isLogin);
+    }
+
+    tabLogin.addEventListener("click", () => switchTab("login"));
+    tabRegister.addEventListener("click", () => switchTab("register"));
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearError();
+      const submitBtn = document.getElementById("login-submit");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Signing in...";
+      try {
+        const data = await apiPost("/auth/login", {
+          username: loginForm.username.value.trim(),
+          password: loginForm.password.value,
+        });
+        auth.setSession(data.token, data.username);
+        window.location.href = "/chat.html";
+      } catch (err) {
+        showError(err.message || "Could not sign in.");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign in";
+      }
+    });
+
+    registerForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearError();
+      const submitBtn = document.getElementById("register-submit");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creating account...";
+      try {
+        await apiPost("/auth/register", {
+          username: registerForm.username.value.trim(),
+          email: registerForm.email.value.trim() || undefined,
+          password: registerForm.password.value,
+        });
+        toast("Account created - sign in to continue.");
+        switchTab("login");
+        loginForm.username.value = registerForm.username.value.trim();
+      } catch (err) {
+        showError(err.message || "Could not create account.");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Create account";
+      }
+    });
+  </script>
+</body>
+</html>

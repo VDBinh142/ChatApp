@@ -3,7 +3,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -12,31 +11,81 @@ datasource db {
 }
 
 model User {
-  username        String            @id
-  password        String
-  friendships1    Friendship[]      @relation("User1Friendship")
-  friendships2    Friendship[]      @relation("User2Friendship")
-  groupMembership GroupMembership[]
-  createdGroups   Group[]           @relation("GroupCreator")
-  OfflineMessages OfflineMessages[]
+  username         String            @id
+  password         String
+  email            String?           @unique
+  displayName      String?
+  avatarImageId    String?           @unique
+  avatarImage      Image?            @relation("UserAvatar", fields: [avatarImageId], references: [id])
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  friendships1     Friendship[]      @relation("User1Friendship")
+  friendships2     Friendship[]      @relation("User2Friendship")
+  groupMembership  GroupMembership[]
+  createdGroups    Group[]           @relation("GroupCreator")
+  OfflineMessages  OfflineMessages[]
+
+  sentRequests     FriendRequest[]   @relation("RequestSender")
+  receivedRequests FriendRequest[]   @relation("RequestReceiver")
+
+  uploadedImages   Image[]           @relation("UploadedBy")
 }
 
 model Friendship {
-  chatId   String @id
-  user1    String
-  user2    String
-  user1Rel User   @relation("User1Friendship", fields: [user1], references: [username])
-  user2Rel User   @relation("User2Friendship", fields: [user2], references: [username])
+  chatId    String   @id
+  user1     String
+  user2     String
+  createdAt DateTime @default(now())
+  user1Rel  User     @relation("User1Friendship", fields: [user1], references: [username])
+  user2Rel  User     @relation("User2Friendship", fields: [user2], references: [username])
 
   @@unique([user1, user2])
 }
 
+model FriendRequest {
+  id         String              @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String?
+  status     FriendRequestStatus @default(PENDING)
+  createdAt  DateTime            @default(now())
+  respondedAt DateTime?
+
+  sender     User                @relation("RequestSender", fields: [senderId], references: [username])
+  receiver   User                @relation("RequestReceiver", fields: [receiverId], references: [username])
+
+  @@unique([senderId, receiverId])
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model Image {
+  id         String   @id @default(cuid())
+  uploadedBy String
+  uploader   User     @relation("UploadedBy", fields: [uploadedBy], references: [username])
+  imageName  String   @unique
+  basePath   String
+  width      Int?
+  height     Int?
+  createdAt  DateTime @default(now())
+
+  userAvatarOf User?   @relation("UserAvatar")
+  groupIconOf  Group?  @relation("GroupIcon")
+}
+
 model Group {
-  groupId   String            @id
-  groupName String
-  createdBy String
-  creator   User              @relation("GroupCreator", fields: [createdBy], references: [username])
-  members   GroupMembership[]
+  groupId     String            @id
+  groupName   String
+  createdBy   String
+  iconImageId String?           @unique
+  iconImage   Image?            @relation("GroupIcon", fields: [iconImageId], references: [id])
+  creator     User              @relation("GroupCreator", fields: [createdBy], references: [username])
+  members     GroupMembership[]
 }
 
 model GroupMembership {

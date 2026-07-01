@@ -60,6 +60,21 @@ export const WsResponse = {
         "Data type:",
         data.type
       );
+      // Previously this failed silently, leaving the client waiting forever
+      // (e.g. stuck on a loading skeleton with no message ever arriving).
+      // Let the client know something went wrong instead of hanging.
+      try {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: "ERROR",
+              msg: `Failed to send ${data.type} response. Please try again.`,
+            })
+          );
+        }
+      } catch {
+        // If even this fails, there's nothing more we can do.
+      }
     }
   },
 };

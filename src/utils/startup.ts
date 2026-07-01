@@ -1,7 +1,12 @@
+import { exec } from "child_process";
+import fs from "fs";
+import path from "path";
 import { PORT, WS_CHAT_PORT, WS_PRESENCE_PORT } from "..";
 import { getOfflineQueue } from "../queue/offlineQueue";
+import { startEmailWorker } from "../queue/emailWorker";
 import { subscribeToChatMessages } from "../redis/chatSubscriber";
 import { subscribeToPresenceUpdates } from "../redis/presenceSubscriber";
+import { subscribeToFriendEvents } from "../redis/friendEventsSubscriber";
 import { createHttpServer } from "../server/http";
 import { createWebSocketServer } from "../server/ws";
 import { initializeCassandraClient } from "../services/cassandra";
@@ -41,12 +46,33 @@ export async function startWebSocketServers(): Promise<void> {
 
 export async function initializeDatabases(): Promise<void> {
   logger.info("🔌 Connecting to Cassandra database...");
-  try {
-    await initializeCassandraClient();
-    logger.info("✅ Cassandra client connected successfully");
-  } catch (error) {
-    logger.error("❌ Failed to connect to Cassandra:", error);
-    throw new Error("Cassandra connection failed - cannot start server");
+  const hasKeyspace = !!process.env.ASTRA_DB_KEYSPACE;
+  const hasClientIdSecret = !!process.env.ASTRA_DB_CLIENT_ID && !!process.env.ASTRA_DB_CLIENT_SECRET;
+  const hasAppToken = !!process.env.ASTRA_DB_APPLICATION_TOKEN || !!process.env.ASTRA_DB_TOKEN;
+  const secureConnectBundlePath =
+    process.env.ASTRA_DB_SECURE_CONNECT_BUNDLE_PATH ||
+    path.join(process.cwd(), "secure-connect-my-cassandra-db.zip");
+  const hasSecureConnectBundle = fs.existsSync(secureConnectBundlePath);
+
+  if (!hasKeyspace || (!hasClientIdSecret && !hasAppToken)) {
+    logger.warn(
+      "⚠️ Cassandra environment variables missing or incomplete; skipping Cassandra initialization"
+    );
+  } else {
+    if (!hasSecureConnectBundle) {
+      logger.warn(
+        `⚠️ Secure connect bundle missing at ${secureConnectBundlePath}; will try the Astra Data API instead.`
+      );
+    }
+    try {
+      await initializeCassandraClient();
+      logger.info("✅ Cassandra client connected successfully");
+    } catch (error) {
+      logger.error("❌ Failed to connect to Cassandra:", error);
+      logger.warn(
+        "⚠️ Cassandra initialization failed. The server will continue running without Cassandra-backed messaging."
+      );
+    }
   }
 
   logger.info("🔌 Connecting to Prisma database...");
@@ -102,6 +128,46 @@ export async function initializeDatabases(): Promise<void> {
     logger.error("❌ Failed to connect to Chat messages subscriber:", error);
     throw new Error("Chat messages subscriber connection failed - cannot start server");
   }
+
+  logger.info("🔌 Connecting to Friend Events Subscriber...");
+  try {
+    await subscribeToFriendEvents();
+    logger.info("✅ Friend events subscriber connected successfully");
+  } catch (error) {
+    logger.error("❌ Failed to connect to Friend events subscriber:", error);
+    throw new Error("Friend events subscriber connection failed - cannot start server");
+  }
+
+  logger.info("🔌 Starting Email Worker...");
+  try {
+    await startEmailWorker();
+    logger.info("✅ Email worker started successfully");
+  } catch (error) {
+    logger.error("❌ Failed to start Email worker:", error);
+    throw new Error("Email worker startup failed - cannot start server");
+  }
+}
+
+function openLoginPageInBrowser(): void {
+  const url = `http://localhost:${PORT}/login.html`;
+  const platform = process.platform;
+  let command = "";
+
+  if (platform === "darwin") {
+    command = `open ${url}`;
+  } else if (platform === "win32") {
+    command = `start ${url}`;
+  } else {
+    command = `xdg-open ${url}`;
+  }
+
+  exec(command, (error) => {
+    if (error) {
+      logger.warn(`Unable to auto-open browser: ${error.message}`);
+    } else {
+      logger.info(`🔓 Opened login page in browser: ${url}`);
+    }
+  });
 }
 
 export async function startHttpServer(): Promise<void> {
@@ -109,6 +175,7 @@ export async function startHttpServer(): Promise<void> {
     const app = createHttpServer();
     const httpServer = app.listen(PORT, () => {
       logger.info(`🌐 HTTP server started on port ${PORT}`);
+      openLoginPageInBrowser();
     });
 
     httpServer.on("error", (error) => {

@@ -1,6 +1,6 @@
 // src/utils/db.ts  (or your equivalent file)
 
-import { PrismaClient } from "../generated/prisma";
+import { PrismaClient } from "@prisma/client";
 
 // This prevents multiple instances of Prisma Client in development
 declare global {

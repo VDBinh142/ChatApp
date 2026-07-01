@@ -20,10 +20,19 @@ export interface SuccessResponse extends BaseResponse {
 }
 
 // Specific response types
+export interface GroupInfo {
+  groupId: string;
+  groupName: string;
+  createdBy: string;
+  iconImageId?: string | null;
+  iconImage?: any | null;
+  members?: string[];
+}
+
 export interface InitDataResponse extends BaseResponse {
   type: "INIT_DATA";
   chatIds: string[];
-  groups: string[]; // Changed from number[] to string[] to match actual group IDs
+  groups: GroupInfo[];
   offlineMessages: Array<{
     partitionKey: string;
     count: number;
@@ -44,8 +53,13 @@ export interface NewOneToOneChatApprovalResponse extends BaseResponse {
 export interface MessageResponse extends BaseResponse {
   type: "MESSAGE";
   from: string;
-  content: string;
+  content?: string;
   chatId: string;
+  fileUrl?: string;
+  fileName?: string;
+  mimeType?: string;
+  fileSize?: number;
+  caption?: string;
 }
 
 export interface OneToOneChatHistoryResponse extends BaseResponse {
@@ -55,9 +69,18 @@ export interface OneToOneChatHistoryResponse extends BaseResponse {
   lastSeenTime?: string | null; // Optional, for displaying last seen time
 }
 
+export interface SearchChatHistoryResponse extends BaseResponse {
+  type: "SEARCH_CHAT_HISTORY_RESULTS";
+  messages: ChatMessage[] | GroupMessage[];
+  chatId?: string;
+  groupId?: string;
+  searchTerm: string;
+}
+
 export interface GroupChatCreatedResponse extends BaseResponse {
   type: "GROUP_CHAT_CREATED";
   groupId: string;
+  group?: GroupInfo;
 }
 
 export interface GroupMemberJoinedResponse extends BaseResponse {
@@ -69,19 +92,63 @@ export interface GroupMemberJoinedResponse extends BaseResponse {
 export interface GroupChatHistoryResponse extends BaseResponse {
   type: "GROUP_CHAT_HISTORY";
   messages: GroupMessage[];
+  members: string[];
 }
 
 export interface GroupChatResponse extends BaseResponse {
   type: "GROUP_CHAT";
   from: string;
   groupId: string;
-  content: string;
+  content?: string;
+  fileUrl?: string;
+  fileName?: string;
+  mimeType?: string;
+  fileSize?: number;
+  caption?: string;
+}
+
+export interface FriendRequestNotificationResponse extends BaseResponse {
+  type: "FRIEND_REQUEST_RECEIVED";
+  from: string;
+  to: string;
+  status: "PENDING";
+}
+
+export interface FriendRequestResponse extends BaseResponse {
+  type: "FRIEND_REQUEST_RESPONSE";
+  from: string;
+  to: string;
+  accepted: boolean;
+  chatId?: string;
+}
+
+export interface FetchFriendRequestsResponse extends BaseResponse {
+  type: "FETCH_FRIEND_REQUESTS_RESPONSE";
+  incomingRequests: FriendRequest[];
+  outgoingRequests: FriendRequest[];
+}
+
+export interface FriendsMetaResponse extends BaseResponse {
+  type: "FETCH_FRIENDS_META_RESPONSE";
+  friends: string[];
+  incomingRequests: FriendRequest[];
+  outgoingRequests: FriendRequest[];
 }
 
 export interface StatusChangeResponse extends BaseResponse {
   type: "STATUS_CHANGE";
   username: string;
   status: "ONLINE" | "OFFLINE";
+}
+
+export interface FriendEventResponse extends BaseResponse {
+  type: "FRIEND_EVENT";
+  eventType:
+    | "FRIEND_REQUEST_RECEIVED"
+    | "FRIEND_REQUEST_ACCEPTED"
+    | "FRIEND_REQUEST_DECLINED"
+    | "FRIEND_REMOVED";
+  [key: string]: unknown;
 }
 
 // Union type for all outgoing responses
@@ -93,11 +160,17 @@ export type OutgoingResponse =
   | NewOneToOneChatApprovalResponse
   | MessageResponse
   | OneToOneChatHistoryResponse
+  | SearchChatHistoryResponse
   | GroupChatCreatedResponse
   | GroupMemberJoinedResponse
   | GroupChatHistoryResponse
   | GroupChatResponse
-  | StatusChangeResponse;
+  | FriendRequestNotificationResponse
+  | FriendRequestResponse
+  | FetchFriendRequestsResponse
+  | FriendsMetaResponse
+  | StatusChangeResponse
+  | FriendEventResponse;
 
 // Data model types
 export interface ChatMessage {
@@ -105,13 +178,23 @@ export interface ChatMessage {
   from: string;
   to: string;
   content?: string;
+  fileUrl?: string;
+  fileName?: string;
+  mimeType?: string;
+  fileSize?: number;
+  caption?: string;
   chatId?: string;
 }
 
 export interface GroupMessage {
   id?: string;
   from: string;
-  text: string;
+  content?: string;
+  fileUrl?: string;
+  fileName?: string;
+  mimeType?: string;
+  fileSize?: number;
+  caption?: string;
   timestamp: string;
   groupId?: string;
 }
@@ -122,6 +205,16 @@ export interface User {
   email: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface FriendRequest {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string | null;
+  status: "PENDING" | "ACCEPTED" | "DECLINED";
+  createdAt: Date;
+  respondedAt: Date | null;
 }
 
 export interface Friendship {

@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings - ChatApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/base.css" />
+  <style>
+    .settings-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+    }
+
+    .settings-nav {
+      background: var(--bg-1);
+      border-right: 1px solid var(--border-soft);
+      padding: 32px 0 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .settings-nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 18px 28px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .settings-nav-brand a {
+      color: var(--text-0);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .settings-nav-section {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-2);
+      padding: 14px 18px 6px;
+    }
+
+    .settings-nav-link {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 18px;
+      font-size: 14px;
+      color: var(--text-1);
+      cursor: pointer;
+      border-radius: 6px;
+      margin: 0 8px;
+      transition: background 0.1s;
+    }
+
+    .settings-nav-link:hover {
+      background: var(--bg-2);
+      color: var(--text-0);
+    }
+
+    .settings-nav-link.active {
+      background: var(--bg-3);
+      color: var(--text-0);
+    }
+
+    .settings-nav-link svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .nav-spacer { flex: 1; }
+
+    .settings-main {
+      padding: 40px 48px;
+      max-width: 680px;
+    }
+
+    .settings-panel { display: none; }
+    .settings-panel.active { display: block; }
+
+    .settings-panel h2 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      margin: 0 0 6px;
+    }
+
+    .settings-panel .desc {
+      color: var(--text-2);
+      font-size: 13px;
+      margin: 0 0 32px;
+    }
+
+    .card {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card h3 {
+      font-family: var(--font-display);
+      font-size: 15px;
+      margin: 0 0 18px;
+      color: var(--text-0);
+    }
+
+    /* Avatar upload card */
+    .avatar-card-inner {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .avatar-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--bg-3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text-1);
+      flex-shrink: 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .avatar-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .avatar-preview-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      color: white;
+      text-align: center;
+    }
+
+    .avatar-preview:hover .avatar-preview-overlay {
+      display: flex;
+    }
+
+    .avatar-info p {
+      font-size: 13px;
+      color: var(--text-2);
+      margin: 0 0 12px;
+    }
+
+    /* Inline save row */
+    .save-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+
+    /* Danger zone */
+    .danger-card {
+      border-color: rgba(226, 92, 92, 0.3);
+    }
+
+    .danger-card h3 {
+      color: var(--danger);
+    }
+
+    .danger-card p {
+      font-size: 13px;
+      color: var(--text-2);
+      margin: 0 0 16px;
+    }
+
+    @media (max-width: 720px) {
+      .settings-shell { grid-template-columns: 1fr; }
+      .settings-nav { display: none; }
+      .settings-main { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="settings-shell">
+    <nav class="settings-nav">
+      <div class="settings-nav-brand">
+        <a href="/chat.html">
+          <span style="width:28px;height:28px;border-radius:8px;background:var(--ember);display:inline-flex;align-items:center;justify-content:center;color:#1a1207;font-size:14px;">C</span>
+          ChatApp
+        </a>
+      </div>
+
+      <div class="settings-nav-section">User Settings</div>
+      <div class="settings-nav-link active" data-panel="profile">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+        My Profile
+      </div>
+      <div class="settings-nav-link" data-panel="account">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+        Account & Security
+      </div>
+
+      <div class="nav-spacer"></div>
+
+      <div class="settings-nav-link" style="color:var(--danger);" id="logout-btn">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+        Sign Out
+      </div>
+    </nav>
+
+    <main class="settings-main">
+
+      <!-- Profile panel -->
+      <div class="settings-panel active" id="panel-profile">
+        <h2>My Profile</h2>
+        <p class="desc">How others see you in the app.</p>
+
+        <div class="card">
+          <h3>Avatar</h3>
+          <div class="avatar-card-inner">
+            <div class="avatar-preview" id="avatar-preview">
+              <div class="avatar-preview-overlay" id="avatar-overlay">
+                <label style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Change
+                  <input type="file" id="avatar-input" accept="image/*" style="display:none;" />
+                </label>
+              </div>
+            </div>
+            <div class="avatar-info">
+              <p>Upload a JPG or PNG. Max 8MB. Will be resized to a square.</p>
+              <div id="avatar-upload-status" style="font-size:12px;color:var(--text-2);"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Display Name &amp; Email</h3>
+          <div class="field">
+            <label for="display-name">Display Name</label>
+            <input id="display-name" placeholder="Your display name" maxlength="64" />
+          </div>
+          <div class="field">
+            <label for="email">Email <span style="text-transform:none;font-weight:400;">(used for friend request notifications)</span></label>
+            <input id="email" type="email" placeholder="you@example.com" />
+          </div>
+          <div class="save-row">
+            <button class="btn btn-primary" id="save-profile-btn">Save Changes</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Username</h3>
+          <p style="font-size:13px;color:var(--text-2);margin:0 0 12px;">
+            Your username is used to log in and how friends find you.
+            Changing it will require you to sign in again.
+          </p>
+          <p style="font-family:var(--font-mono);font-size:14px;background:var(--bg-0);padding:10px 14px;border-radius:var(--radius-sm);margin:0 0 16px;">
+            <span id="current-username-display"></span>
+          </p>
+          <div class="field">
+            <label for="new-username">New Username</label>
+            <input id="new-username" minlength="3" maxlength="32" placeholder="Between 3 and 32 characters" />
+          </div>
+          <div class="field">
+            <label for="username-password">Current Password (to confirm)</label>
+            <input id="username-password" type="password" />
+          </div>
+          <div class="save-row">
+            <button class="btn btn-ghost" id="change-username-btn">Change Username</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Account panel -->
+      <div class="settings-panel" id="panel-account">
+        <h2>Account &amp; Security</h2>
+        <p class="desc">Manage your login credentials.</p>
+
+        <div class="card">
+          <h3>Change Password</h3>
+          <div class="field">
+            <label for="current-password">Current Password</label>
+            <input id="current-password" type="password" />
+          </div>
+          <div class="field">
+            <label for="new-password">New Password</label>
+            <input id="new-password" type="password" minlength="8" placeholder="At least 8 characters" />
+          </div>
+          <div class="field">
+            <label for="confirm-password">Confirm New Password</label>
+            <input id="confirm-password" type="password" placeholder="Must match above" />
+          </div>
+          <div class="save-row">
+            <button class="btn btn-primary" id="change-password-btn">Update Password</button>
+          </div>
+        </div>
+
+        <div class="card danger-card">
+          <h3>Danger Zone</h3>
+          <p>Once you sign out all sessions, you will need to log in again on every device.</p>
+          <button class="btn btn-danger" id="logout-all-btn">Sign out everywhere</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script type="module">
+    import { auth, apiGet, apiPut, uploadImage, toast } from "/js/api.js";
+    auth.requireAuth();
+
+    const me = auth.getUsername();
+
+    // ---- Navigation ----
+    document.querySelectorAll(".settings-nav-link[data-panel]").forEach(link => {
+      link.addEventListener("click", () => {
+        document.querySelectorAll(".settings-nav-link").forEach(l => l.classList.remove("active"));
+        document.querySelectorAll(".settings-panel").forEach(p => p.classList.remove("active"));
+        link.classList.add("active");
+        document.getElementById(`panel-${link.dataset.panel}`).classList.add("active");
+      });
+    });
+
+    // ---- Load profile ----
+    async function loadProfile() {
+      try {
+        const data = await apiGet("/profile");
+        const { username, displayName, email, avatarUrl } = data.profile;
+
+        document.getElementById("current-username-display").textContent = username;
+        document.getElementById("display-name").value = displayName || "";
+        document.getElementById("email").value = email || "";
+
+        const preview = document.getElementById("avatar-preview");
+        if (avatarUrl) {
+          const img = document.createElement("img");
+          img.src = avatarUrl;
+          preview.insertBefore(img, preview.firstChild);
+        } else {
+          preview.insertAdjacentText("afterbegin", initials(username));
+        }
+      } catch (e) {
+        toast("Could not load profile", "error");
+      }
+    }
+
+    function initials(name) {
+      return String(name || "?").slice(0, 2).toUpperCase();
+    }
+
+    loadProfile();
+
+    // ---- Avatar upload ----
+    document.getElementById("avatar-input").addEventListener("change", async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const status = document.getElementById("avatar-upload-status");
+      status.textContent = "Uploading...";
+      try {
+        const result = await uploadImage(file);
+        await apiPut("/profile/avatar", { imageId: result.image.id });
+
+        const preview = document.getElementById("avatar-preview");
+        const existing = preview.querySelector("img");
+        if (existing) existing.remove();
+        const prev = preview.querySelector(".avatar-preview-overlay");
+        const img = document.createElement("img");
+        img.src = result.image.medium;
+        preview.insertBefore(img, prev);
+
+        status.textContent = "Avatar updated!";
+        status.style.color = "var(--online)";
+        setTimeout(() => { status.textContent = ""; }, 3000);
+        toast("Avatar updated");
+      } catch (err) {
+        status.textContent = err.message || "Upload failed";
+        status.style.color = "var(--danger)";
+        toast(err.message || "Avatar upload failed", "error");
+      }
+    });
+
+    // ---- Save profile (display name + email) ----
+    document.getElementById("save-profile-btn").addEventListener("click", async () => {
+      const btn = document.getElementById("save-profile-btn");
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+      try {
+        const displayName = document.getElementById("display-name").value.trim() || undefined;
+        const email = document.getElementById("email").value.trim() || undefined;
+        await apiPut("/profile", { displayName, email });
+        toast("Profile saved");
+      } catch (e) {
+        toast(e.message || "Could not save profile", "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Save Changes";
+      }
+    });
+
+    // ---- Change username ----
+    document.getElementById("change-username-btn").addEventListener("click", async () => {
+      const newUsername = document.getElementById("new-username").value.trim();
+      const currentPassword = document.getElementById("username-password").value;
+      if (!newUsername || !currentPassword) {
+        toast("Fill in both fields", "error");
+        return;
+      }
+      if (!confirm(`Change username to "${newUsername}"? You will be signed out.`)) return;
+      try {
+        await apiPut("/profile/username", { newUsername, currentPassword });
+        toast("Username changed — signing you out");
+        setTimeout(() => {
+          auth.clearSession();
+          window.location.href = "/login.html";
+        }, 1500);
+      } catch (e) {
+        toast(e.message || "Could not change username", "error");
+      }
+    });
+
+    // ---- Change password ----
+    document.getElementById("change-password-btn").addEventListener("click", async () => {
+      const currentPassword = document.getElementById("current-password").value;
+      const newPassword = document.getElementById("new-password").value;
+      const confirmPassword = document.getElementById("confirm-password").value;
+
+      if (!currentPassword || !newPassword) {
+        toast("All fields are required", "error");
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        toast("New passwords do not match", "error");
+        return;
+      }
+      if (newPassword.length < 8) {
+        toast("Password must be at least 8 characters", "error");
+        return;
+      }
+
+      const btn = document.getElementById("change-password-btn");
+      btn.disabled = true;
+      btn.textContent = "Updating...";
+      try {
+        await apiPut("/profile/password", { currentPassword, newPassword });
+        toast("Password updated");
+        document.getElementById("current-password").value = "";
+        document.getElementById("new-password").value = "";
+        document.getElementById("confirm-password").value = "";
+      } catch (e) {
+        toast(e.message || "Could not update password", "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Update Password";
+      }
+    });
+
+    // ---- Logout ----
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      auth.clearSession();
+      window.location.href = "/login.html";
+    });
+
+    document.getElementById("logout-all-btn").addEventListener("click", () => {
+      if (!confirm("Sign out of all sessions?")) return;
+      auth.clearSession();
+      window.location.href = "/login.html";
+    });
+  </script>
+</body>
+</html>

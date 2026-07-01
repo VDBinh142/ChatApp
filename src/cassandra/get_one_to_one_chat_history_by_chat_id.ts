@@ -1,4 +1,4 @@
-import { getCassandraClient } from "../services/cassandra";
+import { getOrInitializeCassandraClient, executeCql, getAstraDb } from "../services/cassandra";
 import { getTimestampFromSnowflake } from "../utils/timestampFromSnowflake";
 
 export async function getOneToOneChatHistory(chatId: string): Promise<
@@ -14,28 +14,57 @@ export async function getOneToOneChatHistory(chatId: string): Promise<
     throw new Error("Chat ID is required to fetch chat history");
   }
 
-  const cassandraClient = getCassandraClient();
-  if (!cassandraClient) {
-    throw new Error("Cassandra client is not available");
-  }
+  const cassandraClient = await getOrInitializeCassandraClient();
 
   const query =
     "SELECT message_id, message_from, message_text, message_to FROM one_to_one_message_by_chat_id WHERE chat_id = ? ORDER BY message_id ASC";
 
   try {
-    const result = await cassandraClient.execute(query, [chatId], {
-      prepare: true,
-    });
+    const astraDb = getAstraDb();
+    let rows: any[] = [];
 
-    const messages = result.rows.map((row) => ({
-      messageId: row.message_id?.toString() || "",
-      from: row.message_from || "",
-      to: row.message_to || "",
-      text: row.message_text || "",
-      timestamp: getTimestampFromSnowflake(
-        row.message_id?.toString() || ""
-      ).toString(),
-    }));
+    if (astraDb) {
+      rows = await astraDb
+        .table("one_to_one_message_by_chat_id")
+        .find({ chat_id: chatId })
+        .toArray();
+    } else {
+      const result = await executeCql(query, [chatId]);
+      rows = result?.rows || result?.data || result?.data?.data || [];
+    }
+
+    const messages = (rows as any[]).map((row: any) => {
+      const rawText = row.message_text || "";
+      let parsedContent: any = rawText;
+
+      try {
+        parsedContent = JSON.parse(rawText);
+      } catch {
+        parsedContent = rawText;
+      }
+
+      const message: any = {
+        messageId: row.message_id?.toString() || "",
+        from: row.message_from || "",
+        to: row.message_to || "",
+        timestamp: getTimestampFromSnowflake(
+          row.message_id?.toString() || ""
+        ).toString(),
+      };
+
+      if (parsedContent && parsedContent.type === "file") {
+        message.content = parsedContent.caption || "";
+        message.fileUrl = parsedContent.url;
+        message.fileName = parsedContent.fileName;
+        message.mimeType = parsedContent.mimeType;
+        message.fileSize = parsedContent.fileSize;
+        message.caption = parsedContent.caption;
+      } else {
+        message.content = String(parsedContent || "");
+      }
+
+      return message;
+    });
 
     console.log(`Retrieved ${messages.length} messages for chat ${chatId}`);
     return messages;

@@ -44,23 +44,20 @@ async function getRedisClient(): Promise<RedisClientType> {
   if (redisClient && redisClient.isOpen) {
     return redisClient;
   }
-  if (
-    !process.env.REDIS_HOST ||
-    !process.env.REDIS_PORT ||
-    !process.env.REDIS_PASSWORD
-  ) {
+  if (!process.env.REDIS_HOST || !process.env.REDIS_PORT) {
     throw new Error(
-      "Redis connection parameters are not set in environment variables"
+      "Redis connection parameters (REDIS_HOST, REDIS_PORT) are not set in environment variables"
     );
   }
-  const client = createClient({
-    username: "default",
-    password: process.env.REDIS_PASSWORD,
-    socket: {
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT),
-    },
-  });
+  const socket = { host: process.env.REDIS_HOST, port: parseInt(process.env.REDIS_PORT) };
+  const clientOptions: any = { socket };
+  if (process.env.REDIS_PASSWORD && process.env.REDIS_PASSWORD.length > 0) {
+    clientOptions.password = process.env.REDIS_PASSWORD;
+    if (process.env.REDIS_USERNAME && process.env.REDIS_USERNAME.length > 0) {
+      clientOptions.username = process.env.REDIS_USERNAME;
+    }
+  }
+  const client = createClient(clientOptions);
   await client.connect();
   redisClient = client as RedisClientType;
   return redisClient;

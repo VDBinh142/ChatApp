@@ -1,10 +1,12 @@
 import express from "express";
+import path from "path";
+import apiRoutes from "../apiRoutes";
 import { corsMiddleware } from "../middlewares/cors";
+import { handleError } from "../errors";
 import {
   globalErrorHandler,
   notFoundHandler,
 } from "../middlewares/errorHandler";
-import routes from "../routes";
 import { morganMiddleware } from "../utils/logger";
 
 export function createHttpServer() {
@@ -27,10 +29,18 @@ export function createHttpServer() {
   });
 
   // API routes
-  app.use("/api", routes);
+  app.use("/api", apiRoutes());
+  app.use("/uploads", express.static(path.join(__dirname, "../../uploads")));
 
-  // Error handlers
+  // Ignore favicon requests if no icon file exists
+  app.get("/favicon.ico", (_req, res) => res.status(204).end());
+
+  // Frontend static pages (login, chat, group, settings)
+  app.use(express.static(path.join(__dirname, "../../frontend/public")));
+
+  // Error handlers - KnownErrors first, then the generic fallback
   app.use(notFoundHandler);
+  app.use(handleError);
   app.use(globalErrorHandler);
 
   return app;

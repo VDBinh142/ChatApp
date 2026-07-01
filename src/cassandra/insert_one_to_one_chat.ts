@@ -1,4 +1,4 @@
-import { getCassandraClient } from "../services/cassandra";
+import { getOrInitializeCassandraClient, executeCql, getAstraDb } from "../services/cassandra";
 
 export async function insertOneToOneChat(
   chatId: string,
@@ -17,26 +17,28 @@ export async function insertOneToOneChat(
     throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
   }
 
-  const cassandraClient = getCassandraClient();
-  if (!cassandraClient) {
-    throw new Error("Cassandra client is not available");
-  }
+  const cassandraClient = await getOrInitializeCassandraClient();
 
   const query =
     "INSERT INTO one_to_one_message_by_chat_id (chat_id, message_id, message_from, message_text, message_to) VALUES (?, ?, ?, ?, ?)";
 
   try {
-    await cassandraClient.execute(
-      query,
-      [chatId, messageId, from, content, to],
-      {
-        prepare: true,
-      }
-    );
-
-    console.log(
-      `Message inserted into Cassandra: ${from} -> ${to} in chat ${chatId}`
-    );
+    const astraDb = getAstraDb();
+    if (astraDb) {
+      await astraDb.table("one_to_one_message_by_chat_id").insertOne({
+        chat_id: chatId,
+        message_id: BigInt(messageId),
+        message_from: from,
+        message_text: content,
+        message_to: to,
+      });
+      console.log(`Message inserted via Astra Data API: ${from} -> ${to} in chat ${chatId}`);
+    } else {
+      await executeCql(query, [chatId, messageId, from, content, to]);
+      console.log(
+        `Message inserted into Cassandra: ${from} -> ${to} in chat ${chatId}`
+      );
+    }
   } catch (error) {
     console.error("Cassandra query error in insertOneToOneChat:", {
       chatId,

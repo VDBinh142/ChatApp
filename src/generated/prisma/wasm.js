@@ -122,19 +122,46 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 
 exports.Prisma.UserScalarFieldEnum = {
   username: 'username',
-  password: 'password'
+  password: 'password',
+  email: 'email',
+  displayName: 'displayName',
+  avatarImageId: 'avatarImageId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.FriendshipScalarFieldEnum = {
   chatId: 'chatId',
   user1: 'user1',
-  user2: 'user2'
+  user2: 'user2',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FriendRequestScalarFieldEnum = {
+  id: 'id',
+  senderId: 'senderId',
+  receiverId: 'receiverId',
+  content: 'content',
+  status: 'status',
+  createdAt: 'createdAt',
+  respondedAt: 'respondedAt'
+};
+
+exports.Prisma.ImageScalarFieldEnum = {
+  id: 'id',
+  uploadedBy: 'uploadedBy',
+  imageName: 'imageName',
+  basePath: 'basePath',
+  width: 'width',
+  height: 'height',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.GroupScalarFieldEnum = {
   groupId: 'groupId',
   groupName: 'groupName',
-  createdBy: 'createdBy'
+  createdBy: 'createdBy',
+  iconImageId: 'iconImageId'
 };
 
 exports.Prisma.GroupMembershipScalarFieldEnum = {
@@ -159,6 +186,17 @@ exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
 };
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+exports.FriendRequestStatus = exports.$Enums.FriendRequestStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  DECLINED: 'DECLINED'
+};
+
 exports.MessageType = exports.$Enums.MessageType = {
   ONE_TO_ONE: 'ONE_TO_ONE',
   GROUP: 'GROUP'
@@ -167,6 +205,8 @@ exports.MessageType = exports.$Enums.MessageType = {
 exports.Prisma.ModelName = {
   User: 'User',
   Friendship: 'Friendship',
+  FriendRequest: 'FriendRequest',
+  Image: 'Image',
   Group: 'Group',
   GroupMembership: 'GroupMembership',
   OfflineMessages: 'OfflineMessages'

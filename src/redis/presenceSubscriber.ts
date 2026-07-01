@@ -4,25 +4,23 @@ import { prisma } from "../services/prisma";
 import { WsResponse } from "../utils/wsResponse";
 
 export async function subscribeToPresenceUpdates() {
-  if (
-    !process.env.REDIS_HOST ||
-    !process.env.REDIS_PORT ||
-    !process.env.REDIS_PASSWORD
-  ) {
+  if (!process.env.REDIS_HOST || !process.env.REDIS_PORT) {
     throw new Error(
-      "Redis connection parameters are not set in environment variables"
+      "Redis connection parameters (REDIS_HOST, REDIS_PORT) are not set in environment variables"
     );
   }
 
   // Create a separate client for subscribing
-  const subscriber = createClient({
-    username: "default",
-    password: process.env.REDIS_PASSWORD,
-    socket: {
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT),
-    },
-  });
+  const socket = { host: process.env.REDIS_HOST, port: parseInt(process.env.REDIS_PORT) };
+  const clientOptions: any = { socket };
+  if (process.env.REDIS_PASSWORD && process.env.REDIS_PASSWORD.length > 0) {
+    clientOptions.password = process.env.REDIS_PASSWORD;
+    if (process.env.REDIS_USERNAME && process.env.REDIS_USERNAME.length > 0) {
+      clientOptions.username = process.env.REDIS_USERNAME;
+    }
+  }
+
+  const subscriber = createClient(clientOptions);
 
   await subscriber.connect();
 

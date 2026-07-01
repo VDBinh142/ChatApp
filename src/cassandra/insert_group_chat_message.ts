@@ -1,4 +1,4 @@
-import { getCassandraClient } from "../services/cassandra";
+import { getOrInitializeCassandraClient, executeCql, getAstraDb } from "../services/cassandra";
 
 export async function insertGroupChatMessage(
   groupId: string,
@@ -14,26 +14,25 @@ export async function insertGroupChatMessage(
     throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
   }
 
-  const cassandraClient = getCassandraClient();
-  if (!cassandraClient) {
-    throw new Error("Cassandra client is not available");
-  }
+  const cassandraClient = await getOrInitializeCassandraClient();
 
   const query =
     "INSERT INTO group_message_by_group_id (group_id, message_id, message_from, message_text) VALUES (?, ?, ?, ?)";
 
   try {
-    await cassandraClient.execute(
-      query,
-      [groupId, messageId, from, content],
-      {
-        prepare: true,
-      }
-    );
-
-    console.log(
-      `Message inserted into Cassandra: ${from} in group ${groupId}`
-    );
+    const astraDb = getAstraDb();
+    if (astraDb) {
+      await astraDb.table("group_message_by_group_id").insertOne({
+        group_id: groupId,
+        message_id: BigInt(messageId),
+        message_from: from,
+        message_text: content,
+      });
+      console.log(`Message inserted via Astra Data API for group ${groupId}`);
+    } else {
+      await executeCql(query, [groupId, messageId, from, content]);
+      console.log(`Message inserted into Cassandra for group ${groupId}`);
+    }
   } catch (error) {
     console.error("Cassandra query error in insertGroupChatMessage:", {
       groupId,

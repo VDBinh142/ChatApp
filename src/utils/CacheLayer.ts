@@ -5,7 +5,8 @@ export class CacheLayer<T> {
     private redisGetFn: (key: string) => Promise<T | null>,
     private dbGetFn: (id: string) => Promise<T | null>,
     private bloomAddFn: (key: string) => Promise<boolean>,
-    private redisSetFn: (key: string, value: T) => Promise<string | null>
+    private redisSetFn: (key: string, value: T) => Promise<string | null>,
+    private redisDeleteFn?: (key: string) => Promise<number>
   ) {}
 
   private getKey(id: string) {
@@ -33,5 +34,21 @@ export class CacheLayer<T> {
 
     await this.bloomAddFn(key);
     return true;
+  }
+
+  /**
+   * Invalidate a cached entry after the underlying DB row has changed
+   * (e.g. password/username update). Note: this only clears the Redis
+   * value, not the bloom filter entry - bloom filters don't support
+   * removal. That's fine: the bloom filter just gates "might exist",
+   * the next get() will fall through to the DB and re-cache fresh data.
+   */
+  async invalidate(id: string): Promise<void> {
+    if (!this.redisDeleteFn) {
+      throw new Error(
+        `CacheLayer for "${this.prefix}" was not given a delete function`
+      );
+    }
+    await this.redisDeleteFn(this.getKey(id));
   }
 }

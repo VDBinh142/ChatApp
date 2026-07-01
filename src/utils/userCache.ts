@@ -25,7 +25,8 @@ export async function getUserCache() {
         redis.get(key).then((val) => (val ? JSON.parse(val) : null)),
       (username: string) => prisma.user.findUnique({ where: { username } }),
       (key: string) => redis.bf.add("user", key),
-      (key: string, value: User) => redis.set(key, JSON.stringify(value))
+      (key: string, value: User) => redis.set(key, JSON.stringify(value)),
+      (key: string) => redis.del(key)
     );
   }
 

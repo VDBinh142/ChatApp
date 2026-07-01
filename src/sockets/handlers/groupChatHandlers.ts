@@ -7,8 +7,10 @@ import {
   CreateGroupChatMessage,
   GetGroupChatHistoryMessage,
   GroupChatMessage,
+  GroupFileMessage,
   JoinGroupChatMessage,
 } from "../../types/messageTypes";
+import { saveFileFromBase64 } from "../../utils/fileStorage";
 import { snowflakeIdGenerator } from "../../utils/snowflake";
 import { WsResponse } from "../../utils/wsResponse";
 import { WsValidation } from "../../utils/wsValidation";
@@ -17,7 +19,7 @@ export async function createGroupChatHandler(
   ws: WebSocket,
   parsed: CreateGroupChatMessage
 ): Promise<void> {
-  const { groupName, by: createdBy } = parsed;
+  const { groupName, by: createdBy, members = [], iconImageId } = parsed;
 
   if (!groupName || !createdBy) {
     WsResponse.error(ws, "Group name and creator are required.");
@@ -26,20 +28,58 @@ export async function createGroupChatHandler(
 
   if (!(await WsValidation.validateUser(ws, createdBy))) return;
 
-  const groupChatId = snowflakeIdGenerator();
+  const uniqueMembers = Array.from(
+    new Set([createdBy, ...(Array.isArray(members) ? members : [])])
+  );
 
   try {
+    const existingUsers = await prisma.user.findMany({
+      where: { username: { in: uniqueMembers } },
+      select: { username: true },
+    });
+
+    const existingUsernames = new Set(existingUsers.map((u) => u.username));
+    const invalidUsers = uniqueMembers.filter(
+      (username) => !existingUsernames.has(username)
+    );
+
+    if (invalidUsers.length) {
+      WsResponse.error(
+        ws,
+        `Invalid group members: ${invalidUsers.join(", ")}`
+      );
+      return;
+    }
+
+    const groupChatId = snowflakeIdGenerator();
     await prisma.group.create({
       data: {
         groupId: groupChatId,
         groupName: groupName,
         createdBy: createdBy,
+        iconImageId: iconImageId || undefined,
       },
+    });
+
+    await prisma.groupMembership.createMany({
+      data: uniqueMembers.map((username) => ({
+        group: groupChatId,
+        user: username,
+      })),
+      skipDuplicates: true,
     });
 
     WsResponse.custom(ws, {
       type: "GROUP_CHAT_CREATED",
       groupId: groupChatId,
+      group: {
+        groupId: groupChatId,
+        groupName,
+        createdBy,
+        iconImageId: iconImageId || null,
+        iconImage: null,
+        members: uniqueMembers,
+      },
     });
 
     console.log(`Group chat created: ${groupChatId} by ${createdBy}`);
@@ -135,9 +175,15 @@ export async function getGroupChatHistoryHandler(
 
   try {
     const groupMessages = await getGroupChatMessage(groupId);
+    const groupChat = await prisma.group.findUnique({
+      where: { groupId },
+      include: { members: true },
+    });
+
     WsResponse.custom(ws, {
       type: "GROUP_CHAT_HISTORY",
       messages: groupMessages || [],
+      members: groupChat?.members?.map((member) => member.user) || [],
     });
   } catch (error) {
     console.error("Error retrieving group history:", error);
@@ -165,6 +211,11 @@ export async function groupChatHandler(
       include: { members: true },
     });
 
+    if (!groupChat) {
+      WsResponse.error(ws, "Group not found.");
+      return;
+    }
+
     const messageId = snowflakeIdGenerator();
     await Promise.all([
       insertGroupChatMessage(groupId, fromUsername, messageContent, messageId),
@@ -180,6 +231,65 @@ export async function groupChatHandler(
     console.log(`Group message sent by ${fromUsername} to group ${groupId}`);
   } catch (error) {
     console.error("Error in groupChatHandler:", error);
+    if (ws.readyState === WebSocket.OPEN) {
+      WsResponse.error(ws, "Failed to send message. Please try again.");
+    }
+  }
+}
+
+export async function groupFileMessageHandler(
+  ws: WebSocket,
+  parsed: GroupFileMessage,
+): Promise<void> {
+  const { from: fromUsername, groupId, fileName, fileType, fileBase64, caption } = parsed;
+
+  if (!fromUsername || !groupId || !fileName || !fileType || !fileBase64) {
+    WsResponse.error(
+      ws,
+      "Group file messages require sender, group ID, file name, file type, and file data.",
+    );
+    return;
+  }
+
+  if (!(await WsValidation.validateUser(ws, fromUsername))) return;
+  if (!(await WsValidation.validateGroup(ws, groupId))) return;
+
+  try {
+    const groupChat = await prisma.group.findUnique({
+      where: { groupId },
+      include: { members: true },
+    });
+
+    if (!groupChat) {
+      WsResponse.error(ws, "Group chat not found.");
+      return;
+    }
+
+    const savedFile = await saveFileFromBase64(fileBase64, fileName, fileType);
+    const filePayload = {
+      type: "file",
+      url: savedFile.fileUrl,
+      fileName: savedFile.fileName,
+      mimeType: savedFile.mimeType,
+      fileSize: savedFile.fileSize,
+      caption: caption || null,
+    };
+
+    const messageId = snowflakeIdGenerator();
+    const messageText = JSON.stringify(filePayload);
+
+    await Promise.all([
+      insertGroupChatMessage(groupId, fromUsername, messageText, messageId),
+      broadcastGroupMessage(groupChat, fromUsername, groupId, messageId, messageText),
+    ]);
+
+    WsResponse.success(ws, "Group file sent successfully.");
+    console.log(`File message sent by ${fromUsername} to group ${groupId}`);
+  } catch (error) {
+    console.error("Error in groupFileMessageHandler:", error);
+    if (ws.readyState === WebSocket.OPEN) {
+      WsResponse.error(ws, "Failed to send file to group. Please try again.");
+    }
   }
 }
 
@@ -209,12 +319,26 @@ async function broadcastGroupMessage(
       });
     } else {
       try {
-        WsResponse.custom(memberSocket, {
-          type: "GROUP_CHAT",
-          from: fromUsername,
-          groupId,
-          content: messageContent,
-        });
+        let payload: any = { type: "GROUP_CHAT", from: fromUsername, groupId };
+        try {
+          const parsed = JSON.parse(messageContent);
+          if (parsed && parsed.type === "file") {
+            payload = {
+              ...payload,
+              fileUrl: parsed.url,
+              fileName: parsed.fileName,
+              mimeType: parsed.mimeType,
+              fileSize: parsed.fileSize,
+              caption: parsed.caption,
+            };
+          } else {
+            payload = { ...payload, content: messageContent };
+          }
+        } catch {
+          payload = { ...payload, content: messageContent };
+        }
+
+        WsResponse.custom(memberSocket, payload);
       } catch (error) {
         console.error(
           `Error sending message to group member ${memberUsername}:`,

@@ -474,7 +474,7 @@ if (targetServer !== currentServerId) {
 
 #### 1. Clone the Repository
 ```bash
-git clone https://github.com/MonarchRyuzaki/Real-Time-Chat-App
+git clone https://github.com/VDBinh142/ChatApp.git
 cd real-time-chat-app
 ```
 
