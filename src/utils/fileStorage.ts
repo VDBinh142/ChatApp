@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { snowflakeIdGenerator } from "./snowflake";
 
-const uploadsDir = path.resolve(__dirname, "../uploads");
+const uploadsDir = path.resolve(__dirname, "../../uploads");
 
 export interface SavedFileDetails {
   fileUrl: string;

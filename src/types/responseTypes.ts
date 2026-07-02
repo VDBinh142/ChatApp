@@ -92,7 +92,7 @@ export interface GroupMemberJoinedResponse extends BaseResponse {
 export interface GroupChatHistoryResponse extends BaseResponse {
   type: "GROUP_CHAT_HISTORY";
   messages: GroupMessage[];
-  members: string[];
+  members: GroupMemberInfo[];
 }
 
 export interface GroupChatResponse extends BaseResponse {
@@ -238,4 +238,8 @@ export interface GroupMembership {
   group: string;
   user: string;
   joinedAt: Date;
+}
+export interface GroupMemberInfo {
+  username: string;
+  avatarImage: { basePath: string } | null;
 }

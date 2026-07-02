@@ -17,7 +17,7 @@ import { WsValidation } from "../../utils/wsValidation";
 
 export async function createGroupChatHandler(
   ws: WebSocket,
-  parsed: CreateGroupChatMessage
+  parsed: CreateGroupChatMessage,
 ): Promise<void> {
   const { groupName, by: createdBy, members = [], iconImageId } = parsed;
 
@@ -29,7 +29,7 @@ export async function createGroupChatHandler(
   if (!(await WsValidation.validateUser(ws, createdBy))) return;
 
   const uniqueMembers = Array.from(
-    new Set([createdBy, ...(Array.isArray(members) ? members : [])])
+    new Set([createdBy, ...(Array.isArray(members) ? members : [])]),
   );
 
   try {
@@ -40,14 +40,11 @@ export async function createGroupChatHandler(
 
     const existingUsernames = new Set(existingUsers.map((u) => u.username));
     const invalidUsers = uniqueMembers.filter(
-      (username) => !existingUsernames.has(username)
+      (username) => !existingUsernames.has(username),
     );
 
     if (invalidUsers.length) {
-      WsResponse.error(
-        ws,
-        `Invalid group members: ${invalidUsers.join(", ")}`
-      );
+      WsResponse.error(ws, `Invalid group members: ${invalidUsers.join(", ")}`);
       return;
     }
 
@@ -91,7 +88,7 @@ export async function createGroupChatHandler(
 
 export async function joinGroupChatHandler(
   ws: WebSocket,
-  parsed: JoinGroupChatMessage
+  parsed: JoinGroupChatMessage,
 ): Promise<void> {
   const { groupId, username } = parsed;
 
@@ -114,7 +111,7 @@ export async function joinGroupChatHandler(
     if (alreadyMember) {
       WsResponse.error(
         ws,
-        `User ${username} is already a member of the group.`
+        `User ${username} is already a member of the group.`,
       );
       return;
     }
@@ -140,7 +137,7 @@ export async function joinGroupChatHandler(
 async function notifyGroupMembers(
   groupId: string,
   newMember: string,
-  excludeSocket: WebSocket
+  excludeSocket: WebSocket,
 ): Promise<void> {
   try {
     const groupChat = await prisma.group.findUnique({
@@ -167,7 +164,7 @@ async function notifyGroupMembers(
 
 export async function getGroupChatHistoryHandler(
   ws: WebSocket,
-  parsed: GetGroupChatHistoryMessage
+  parsed: GetGroupChatHistoryMessage,
 ): Promise<void> {
   const { groupId } = parsed;
 
@@ -177,13 +174,27 @@ export async function getGroupChatHistoryHandler(
     const groupMessages = await getGroupChatMessage(groupId);
     const groupChat = await prisma.group.findUnique({
       where: { groupId },
-      include: { members: true },
+      include: {
+        members: {
+          include: {
+            userRel: {
+              include: { avatarImage: true },
+            },
+          },
+        },
+      },
     });
 
     WsResponse.custom(ws, {
       type: "GROUP_CHAT_HISTORY",
       messages: groupMessages || [],
-      members: groupChat?.members?.map((member) => member.user) || [],
+      members:
+        groupChat?.members?.map((member) => ({
+          username: member.user,
+          avatarImage: member.userRel?.avatarImage
+            ? { basePath: member.userRel.avatarImage.basePath }
+            : null,
+        })) || [],
     });
   } catch (error) {
     console.error("Error retrieving group history:", error);
@@ -193,7 +204,7 @@ export async function getGroupChatHistoryHandler(
 
 export async function groupChatHandler(
   ws: WebSocket,
-  parsed: GroupChatMessage
+  parsed: GroupChatMessage,
 ): Promise<void> {
   const { to: groupId, from: fromUsername, content: messageContent } = parsed;
 
@@ -224,7 +235,7 @@ export async function groupChatHandler(
         fromUsername,
         groupId,
         messageId,
-        messageContent
+        messageContent,
       ),
     ]);
 
@@ -241,7 +252,14 @@ export async function groupFileMessageHandler(
   ws: WebSocket,
   parsed: GroupFileMessage,
 ): Promise<void> {
-  const { from: fromUsername, groupId, fileName, fileType, fileBase64, caption } = parsed;
+  const {
+    from: fromUsername,
+    groupId,
+    fileName,
+    fileType,
+    fileBase64,
+    caption,
+  } = parsed;
 
   if (!fromUsername || !groupId || !fileName || !fileType || !fileBase64) {
     WsResponse.error(
@@ -280,7 +298,13 @@ export async function groupFileMessageHandler(
 
     await Promise.all([
       insertGroupChatMessage(groupId, fromUsername, messageText, messageId),
-      broadcastGroupMessage(groupChat, fromUsername, groupId, messageId, messageText),
+      broadcastGroupMessage(
+        groupChat,
+        fromUsername,
+        groupId,
+        messageId,
+        messageText,
+      ),
     ]);
 
     WsResponse.success(ws, "Group file sent successfully.");
@@ -298,7 +322,7 @@ async function broadcastGroupMessage(
   fromUsername: string,
   groupId: string,
   messageId: string,
-  messageContent: string
+  messageContent: string,
 ): Promise<void> {
   if (!groupChat || !groupChat.members || !Array.isArray(groupChat.members)) {
     return;
@@ -342,7 +366,7 @@ async function broadcastGroupMessage(
       } catch (error) {
         console.error(
           `Error sending message to group member ${memberUsername}:`,
-          error
+          error,
         );
       }
     }

@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/chat.css" />
   <style>
-    /* Friend-request inbox panel */
     .fr-badge {
       background: var(--danger);
       color: white;
@@ -19,7 +18,6 @@
       padding: 1px 5px;
       margin-left: auto;
     }
-
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -29,9 +27,7 @@
       justify-content: center;
       z-index: 200;
     }
-
     .modal-overlay.hidden { display: none; }
-
     .modal {
       background: var(--bg-2);
       border: 1px solid var(--border);
@@ -41,12 +37,10 @@
       max-width: 420px;
       box-shadow: var(--shadow-pop);
     }
-
     .modal h3 {
       font-family: var(--font-display);
       margin: 0 0 20px;
     }
-
     .fr-item {
       display: flex;
       align-items: center;
@@ -54,15 +48,12 @@
       padding: 10px 0;
       border-bottom: 1px solid var(--border-soft);
     }
-
     .fr-item:last-child { border-bottom: none; }
-
     .fr-actions {
       display: flex;
       gap: 6px;
       margin-left: auto;
     }
-
     .fr-actions button {
       padding: 5px 12px;
       font-size: 12px;
@@ -71,40 +62,20 @@
       border: 1px solid;
       cursor: pointer;
     }
-
     .btn-accept {
       background: var(--online);
       border-color: var(--online);
       color: #0c1f0c;
     }
-
     .btn-decline {
       background: transparent;
       border-color: var(--border);
       color: var(--text-2);
     }
-
     .btn-decline:hover {
       border-color: var(--danger);
       color: var(--danger);
     }
-
-    .add-friend-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 20px;
-    }
-
-    .add-friend-row input {
-      flex: 1;
-      background: var(--bg-1);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 8px 12px;
-      color: var(--text-0);
-      font-size: 13px;
-    }
-
     .empty-chat {
       flex: 1;
       display: flex;
@@ -116,20 +87,32 @@
       padding: 40px;
       gap: 10px;
     }
-
-    .empty-chat svg {
-      opacity: 0.25;
-    }
-
+    .empty-chat svg { opacity: 0.25; }
     .empty-chat h3 {
       color: var(--text-1);
       font-family: var(--font-display);
       margin: 0;
     }
+    .empty-chat p { font-size: 13px; margin: 0; }
 
-    .empty-chat p {
-      font-size: 13px;
-      margin: 0;
+    /* Conversation search */
+    .search-result-row {
+      display: flex;
+      gap: 10px;
+      padding: 8px 6px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .search-result-row:hover { background: var(--bg-1); }
+    .search-result-meta { display: flex; justify-content: space-between; gap: 8px; }
+    .search-result-sender { font-size: 12px; font-weight: 600; }
+    .search-result-time { font-size: 11px; color: var(--text-2); }
+    .search-result-snippet {
+      font-size: 12px;
+      color: var(--text-2);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   </style>
 </head>
@@ -165,11 +148,13 @@
           <input id="friend-search" placeholder="Find a conversation" />
         </div>
       </div>
-      <div class="sidebar-section-label">Friends</div>
+      <div class="sidebar-section-label">
+        Friends
+        <button title="Add friend" onclick="document.getElementById('add-friend-modal').classList.remove('hidden')">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+        </button>
+      </div>
       <div class="sidebar-list" id="friends-list">
-        <div class="skeleton" style="height:44px;margin:4px 10px;"></div>
-        <div class="skeleton" style="height:44px;margin:4px 10px;"></div>
-        <div class="skeleton" style="height:44px;margin:4px 10px;"></div>
       </div>
     </div>
 
@@ -188,18 +173,26 @@
             <div class="chat-topbar-sub" id="topbar-status"></div>
           </div>
           <div class="chat-topbar-actions">
+            <button class="topbar-btn" id="search-toggle-btn" title="Search conversation">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </button>
             <button class="topbar-btn" id="remove-friend-btn" title="Remove friend">
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" /></svg>
             </button>
           </div>
         </div>
+        <div class="search-input hidden" id="convo-search-bar" style="margin:10px 14px;">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <input id="convo-search-input" placeholder="Search this conversation" />
+        </div>
+        <div class="hidden" id="convo-search-results" style="overflow-y:auto;max-height:220px;padding:0 14px;"></div>
         <div class="message-list" id="message-list"></div>
         <div class="upload-preview" id="upload-preview"></div>
         <div class="chat-input-bar">
           <div class="chat-input-wrap">
-            <label class="chat-input-btn" title="Attach image" style="cursor:pointer;">
+            <label class="chat-input-btn" title="Attach file" style="cursor:pointer;">
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              <input type="file" id="file-input" accept="image/*" style="display:none;" />
+              <input type="file" id="file-input" accept="image/*,application/pdf,audio/*" style="display:none;" />
             </label>
             <textarea class="chat-input-field" id="msg-input" rows="1" placeholder="Message..."></textarea>
             <button class="send-btn" id="send-btn" title="Send">
@@ -216,11 +209,25 @@
     <div class="modal">
       <h3>Friend Requests</h3>
       <div id="fr-incoming-list"></div>
-      <div class="add-friend-row">
-        <input id="add-friend-input" placeholder="Add by username..." />
-        <button class="btn btn-primary" id="add-friend-btn" style="padding:8px 16px;font-size:13px;">Send</button>
-      </div>
       <button class="btn btn-ghost" style="width:100%;margin-top:12px;" onclick="document.getElementById('fr-modal').classList.add('hidden')">Close</button>
+    </div>
+  </div>
+
+  <!-- Add Friend Modal -->
+  <div class="modal-overlay hidden" id="add-friend-modal">
+    <div class="modal">
+      <h3>Add Friend</h3>
+      <p style="color:var(--text-2);font-size:13px;margin:-12px 0 20px;">
+        You can add friends with their username.
+      </p>
+      <div class="field">
+        <input id="add-friend-input" placeholder="Enter a username" />
+        <div class="field-error" id="add-friend-error"></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('add-friend-modal').classList.add('hidden')">Cancel</button>
+        <button class="btn btn-primary" style="flex:1;" id="add-friend-btn">Send Friend Request</button>
+      </div>
     </div>
   </div>
 
@@ -236,26 +243,18 @@
     let presenceMap = {};
     let pendingFile = null;
 
-    // Self avatar
     const selfAvatar = document.getElementById("self-avatar");
     selfAvatar.textContent = initials(me);
+    loadSelfAvatar();
 
-    // ---- WebSocket ----
-    function handleWs(msg) {
-      if (msg.eventType === "FRIEND_REQUEST_RECEIVED") {
-        updateFrBadge();
-        toast(`${msg.from} sent you a friend request`);
-      } else if (msg.eventType === "FRIEND_REQUEST_ACCEPTED") {
-        toast(`${msg.by} accepted your friend request`);
-        loadFriends();
-      } else if (msg.eventType === "FRIEND_REMOVED") {
-        toast(`${msg.by} removed you as a friend`);
-        loadFriends();
-        if (activeFriend === msg.by) closeActiveChat();
-      }
+    async function loadSelfAvatar() {
+      try {
+        const data = await apiGet("/profile");
+        const avatarUrl = data.profile?.avatarUrl;
+        if (avatarUrl) selfAvatar.innerHTML = `<img src="${avatarUrl}" />`;
+      } catch (e) {}
     }
 
-    // ---- Friends list ----
     async function loadFriends() {
       try {
         const data = await apiGet("/friends");
@@ -270,8 +269,7 @@
     function renderFriendsList(list) {
       const container = document.getElementById("friends-list");
       if (!list.length) {
-        container.innerHTML = `<div class="empty-state" style="padding:24px 14px;">
-          <p>No friends yet — add someone!</p></div>`;
+        container.innerHTML = `<div class="empty-state" style="padding:24px 14px;"><p>No friends yet — add someone!</p></div>`;
         return;
       }
       container.innerHTML = list.map(f => {
@@ -318,7 +316,6 @@
       } catch {}
     }
 
-    // ---- Open chat ----
     window.openChat = async function(username) {
       activeFriend = username;
       const friend = friends.find(f => f.username === username) || { username };
@@ -331,7 +328,11 @@
       const activeChat = document.getElementById("active-chat");
       activeChat.style.display = "flex";
 
-      // Topbar
+      document.getElementById("convo-search-bar").classList.add("hidden");
+      document.getElementById("convo-search-results").classList.add("hidden");
+      document.getElementById("convo-search-results").innerHTML = "";
+      document.getElementById("convo-search-input").value = "";
+
       const avatar = document.getElementById("topbar-avatar");
       avatar.innerHTML = friend.avatarImage
         ? `<img src="${friend.avatarImage.basePath}_small.webp" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
@@ -339,19 +340,12 @@
       document.getElementById("topbar-name").textContent = name;
       updateTopbarStatus();
 
-      // Remove-friend button
       document.getElementById("remove-friend-btn").onclick = () => removeFriend(username);
 
-      // Load messages via WS
       document.getElementById("message-list").innerHTML = `<div class="skeleton" style="height:40px;margin:8px 20px;"></div><div class="skeleton" style="height:40px;margin:8px 20px;width:60%;"></div>`;
       activeChatId = friend.chatId || chatIdFor(username);
       if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: "GET_ONE_TO_ONE_HISTORY",
-          from: me,
-          to: username,
-          chatId: activeChatId,
-        }));
+        ws.send(JSON.stringify({ type: "GET_ONE_TO_ONE_HISTORY", from: me, to: username, chatId: activeChatId }));
       }
     };
 
@@ -361,9 +355,7 @@
       document.getElementById("topbar-status").style.color = online ? "var(--online)" : "var(--text-2)";
     }
 
-    function chatIdFor(username) {
-      return [me, username].sort().join("-");
-    }
+    function chatIdFor(username) { return [me, username].sort().join("-"); }
 
     function closeActiveChat() {
       activeFriend = null;
@@ -385,21 +377,41 @@
       }
     }
 
-    // ---- Messages ----
+    function avatarHtmlFor(username) {
+      if (username === me) return selfAvatar.innerHTML || initials(me);
+      const friend = friends.find(f => f.username === username);
+      return friend?.avatarImage
+        ? `<img src="${friend.avatarImage.basePath}_small.webp" />`
+        : initials(username);
+    }
+
     function appendMessage(msg) {
       const list = document.getElementById("message-list");
       const isSelf = msg.from === me;
       const div = document.createElement("div");
       div.className = `msg-row${isSelf ? " is-self" : ""} has-header`;
+
+      let fileHtml = "";
+      if (msg.fileUrl) {
+        const mime = msg.mimeType || "";
+        if (mime.startsWith("image/")) {
+          fileHtml = `<img class="msg-img" src="${msg.fileUrl}" alt="${escHtml(msg.fileName || "image")}" />`;
+        } else if (mime.startsWith("audio/")) {
+          fileHtml = `<audio class="msg-audio" controls src="${msg.fileUrl}"></audio>`;
+        } else {
+          fileHtml = `<a class="msg-file" href="${msg.fileUrl}" target="_blank" rel="noopener">📎 ${escHtml(msg.fileName || "Download file")}</a>`;
+        }
+      }
+
       div.innerHTML = `
-        <div class="avatar" style="width:36px;height:36px;font-size:11px;">${initials(msg.from)}</div>
+        <div class="avatar" style="width:36px;height:36px;font-size:11px;">${avatarHtmlFor(msg.from)}</div>
         <div class="msg-bubble-wrap">
           <div class="msg-header">
             <span class="msg-sender${isSelf ? " is-self" : ""}">${escHtml(msg.from)}</span>
             <span class="msg-time">${formatTime(msg.timestamp)}</span>
           </div>
           ${msg.content ? `<div class="msg-bubble">${escHtml(msg.content)}</div>` : ""}
-          ${msg.fileUrl ? `<img class="msg-img" src="${msg.fileUrl}" alt="image" />` : ""}
+          ${fileHtml}
         </div>`;
       list.appendChild(div);
       list.scrollTop = list.scrollHeight;
@@ -415,17 +427,16 @@
       messages.forEach(m => appendMessage(m));
     }
 
-    // ---- File upload ----
     document.getElementById("file-input").addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
       pendingFile = file;
       const preview = document.getElementById("upload-preview");
-      const url = URL.createObjectURL(file);
-      preview.innerHTML = `<div class="upload-thumb-wrap">
-        <img class="upload-thumb" src="${url}" />
-        <button class="remove-thumb" onclick="clearFile()">×</button>
-      </div>`;
+      const isImage = file.type.startsWith("image/");
+      const thumb = isImage
+        ? `<img class="upload-thumb" src="${URL.createObjectURL(file)}" />`
+        : `<div class="upload-thumb upload-thumb-file">${escHtml(file.name)}</div>`;
+      preview.innerHTML = `<div class="upload-thumb-wrap">${thumb}<button class="remove-thumb" onclick="clearFile()">×</button></div>`;
     });
 
     window.clearFile = function() {
@@ -434,33 +445,44 @@
       document.getElementById("file-input").value = "";
     };
 
-    // ---- Send message ----
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
     async function sendMessage() {
       const input = document.getElementById("msg-input");
       const text = input.value.trim();
       if (!text && !pendingFile) return;
       if (!activeFriend || ws?.readyState !== WebSocket.OPEN) return;
 
-      let fileUrl = null;
+      const chatId = activeChatId || chatIdFor(activeFriend);
+
       if (pendingFile) {
         try {
-          const result = await uploadImage(pendingFile);
-          fileUrl = result.image.medium;
+          const fileBase64 = await fileToBase64(pendingFile);
+          ws.send(JSON.stringify({
+            type: "FILE_MESSAGE",
+            from: me,
+            to: activeFriend,
+            chatId,
+            fileName: pendingFile.name,
+            fileType: pendingFile.type || "application/octet-stream",
+            fileBase64,
+            caption: text || undefined,
+          }));
           clearFile();
         } catch (e) {
-          toast("Image upload failed", "error");
+          toast("File upload failed", "error");
           return;
         }
+      } else {
+        ws.send(JSON.stringify({ type: "ONE_TO_ONE_CHAT", from: me, to: activeFriend, chatId, content: text }));
       }
-
-      ws.send(JSON.stringify({
-        type: "ONE_TO_ONE_CHAT",
-        from: me,
-        to: activeFriend,
-        chatId: activeChatId || chatIdFor(activeFriend),
-        content: text,
-        fileUrl,
-      }));
 
       input.value = "";
       input.style.height = "auto";
@@ -474,13 +496,62 @@
       }
     });
 
-    // Auto-resize textarea
     document.getElementById("msg-input").addEventListener("input", (e) => {
       e.target.style.height = "auto";
       e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
     });
 
-    // ---- WS message routing for history ----
+    document.getElementById("search-toggle-btn").addEventListener("click", () => {
+      document.getElementById("convo-search-bar").classList.toggle("hidden");
+      const results = document.getElementById("convo-search-results");
+      results.classList.add("hidden");
+      results.innerHTML = "";
+      document.getElementById("convo-search-input").value = "";
+      document.getElementById("convo-search-input").focus();
+    });
+
+    let convoSearchDebounce = null;
+    document.getElementById("convo-search-input").addEventListener("input", (e) => {
+      const term = e.target.value.trim();
+      clearTimeout(convoSearchDebounce);
+      const results = document.getElementById("convo-search-results");
+      if (!term) {
+        results.classList.add("hidden");
+        results.innerHTML = "";
+        return;
+      }
+      convoSearchDebounce = setTimeout(() => {
+        if (!activeFriend || ws?.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify({
+          type: "SEARCH_ONE_TO_ONE_HISTORY",
+          from: me,
+          to: activeFriend,
+          chatId: activeChatId || chatIdFor(activeFriend),
+          searchTerm: term,
+        }));
+      }, 300);
+    });
+
+    function renderConvoSearchResults(messages, searchTerm) {
+      const results = document.getElementById("convo-search-results");
+      results.classList.remove("hidden");
+      if (!messages.length) {
+        results.innerHTML = `<p style="color:var(--text-2);font-size:12px;padding:8px 0;">No messages match "${escHtml(searchTerm)}".</p>`;
+        return;
+      }
+      results.innerHTML = `<div class="right-panel-label" style="padding:6px 0;">${messages.length} result${messages.length === 1 ? "" : "s"}</div>` +
+        messages.map(m => `
+          <div class="search-result-row">
+            <div class="avatar" style="width:26px;height:26px;font-size:9px;flex-shrink:0;">${initials(m.from)}</div>
+            <div style="min-width:0;flex:1;">
+              <div class="search-result-meta">
+                <span class="search-result-sender">${escHtml(m.from)}</span>
+                <span class="search-result-time">${formatTime(m.timestamp)}</span>
+              </div>
+              <div class="search-result-snippet">${escHtml(m.content || m.fileName || "")}</div>
+            </div>
+          </div>`).join("");
+    }
 
     function handleFriendEvent(msg) {
       switch (msg.eventType) {
@@ -507,15 +578,11 @@
       }
     }
 
-    // ---- Friend search filter ----
     document.getElementById("friend-search").addEventListener("input", (e) => {
       const q = e.target.value.toLowerCase();
-      renderFriendsList(friends.filter(f =>
-        (f.displayName || f.username).toLowerCase().includes(q)
-      ));
+      renderFriendsList(friends.filter(f => (f.displayName || f.username).toLowerCase().includes(q)));
     });
 
-    // ---- Friend requests modal ----
     async function refreshFriendRequests() {
       const data = await apiGet("/friends/requests");
       return data.incoming || data.incomingRequests || [];
@@ -570,26 +637,33 @@
       }
     });
 
-    document.getElementById("add-friend-btn").addEventListener("click", async () => {
-      const username = document.getElementById("add-friend-input").value.trim();
-      if (!username) return;
-      try {
-        await apiPost("/friends/requests", { receiverId: username });
-        toast(`Friend request sent to ${username}`);
-        document.getElementById("add-friend-input").value = "";
-        updateFrBadge();
-      } catch (e) {
-        toast(e.message || "Could not send request", "error");
-      }
-    });
-
-    // Close modal on backdrop click
     document.getElementById("fr-modal").addEventListener("click", (e) => {
       if (e.target === document.getElementById("fr-modal"))
         document.getElementById("fr-modal").classList.add("hidden");
     });
 
-    // Handle WS messages involving history
+    document.getElementById("add-friend-btn").addEventListener("click", async () => {
+      const input = document.getElementById("add-friend-input");
+      const errorEl = document.getElementById("add-friend-error");
+      const username = input.value.trim();
+      errorEl.textContent = "";
+      if (!username) return;
+      try {
+        await apiPost("/friends/requests", { receiverId: username });
+        toast(`Friend request sent to ${username}`);
+        input.value = "";
+        document.getElementById("add-friend-modal").classList.add("hidden");
+        updateFrBadge();
+      } catch (e) {
+        errorEl.textContent = e.message || "Could not send request";
+      }
+    });
+
+    document.getElementById("add-friend-modal").addEventListener("click", (e) => {
+      if (e.target === document.getElementById("add-friend-modal"))
+        document.getElementById("add-friend-modal").classList.add("hidden");
+    });
+
     function handleWs(msg) {
       switch (msg.type) {
         case "STATUS_CHANGE":
@@ -604,6 +678,11 @@
         case "MESSAGE":
           if (msg.chatId === activeChatId) appendMessage(msg);
           break;
+        case "SEARCH_CHAT_HISTORY_RESULTS":
+          if (msg.chatId === (activeChatId || chatIdFor(activeFriend))) {
+            renderConvoSearchResults(msg.messages, msg.searchTerm);
+          }
+          break;
         case "FRIEND_EVENT":
           handleFriendEvent(msg);
           break;
@@ -614,7 +693,6 @@
       return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     }
 
-    // ---- Boot ----
     function connectWS() {
       ws = connectChatSocket();
       ws.addEventListener("message", e => handleWs(JSON.parse(e.data)));
